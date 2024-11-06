@@ -1,6 +1,7 @@
 import configparser
 import os
 import commons
+import platform
 
 _CONAN_EXE = None
 _CONAN_BASE_PATH = None
@@ -30,7 +31,10 @@ def _execute_command(command: str):
 
 
 def get_toolchain_filepath(mode: str):
-    return f'{_CONAN_DEPENDENCIES_FOLDER}/{mode.lower()}/build/generators/conan_toolchain.cmake'
+    file_path = f'{_CONAN_DEPENDENCIES_FOLDER}/{mode.lower()}/build/'
+    if platform.system() != "Windows":
+        file_path += f'{mode.capitalize()}/'
+    return f'{file_path}/generators/conan_toolchain.cmake'
 
 
 def create_profiles():
