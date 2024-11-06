@@ -13,8 +13,6 @@ def realpath(path: str):
     return normalize_path(path)
 
 BASE_PATH = realpath(os.path.dirname(os.path.realpath(__file__)))
-SCRIPT_NAME="${script_name}"
-PROJECT_PATH="${project_path}"
 
 def execute_process(command: list[str]):
     print(f"Executing: {' '.join(command)} | CWD: {BASE_PATH}")
@@ -25,10 +23,9 @@ def execute_process(command: list[str]):
 
 def main():
     build_args = [
-        "python3",
-        SCRIPT_NAME,
-        "-w",
-        PROJECT_PATH
+        "python3", "${script_name}",
+        "-w", "${project_path}",
+        "--package-manager", "${package_manager}"
     ]
     if len(sys.argv) >= 2:
         build_args += sys.argv[1:]
