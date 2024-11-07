@@ -2,9 +2,9 @@ import os
 import commons
 import shutil
 
-_CMAKE_EXE = None
-_CMAKE_LIST_PATH = None
-_CMAKE_BUILD_FOLDER = None
+_CMAKE_EXE: str = ""
+_CMAKE_LIST_PATH: str = ""
+_CMAKE_BUILD_FOLDER: str = ""
 
 def setup_paths(cmake_exe: str, base_path: str):
     global _CMAKE_EXE

@@ -1,0 +1,6 @@
+{%- import 'commons.jinja2' as commons -%}
+#!/bin/bash
+
+script_name="{{script_path}}"
+project_path="{{project_path}}"
+python3 $script_name -w $project_path {{commons.package_manager_param(package_manager_name, package_manager_path)}} "$@"

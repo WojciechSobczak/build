@@ -16,26 +16,30 @@ class BuildArgs:
     rebuild: bool
     workdir: str
     mode: str
-    conan_path: str
-    vcpkg_path: str
+    package_manager_path: str
     dependencies: bool
     cmake_path: str
     package_manager: str
     generator: str | None
     generate_project: bool
+    generate_config: bool
 
     @staticmethod
-    def _extract_path(path: str):
+    def _extract_path(path: str | None) -> str | None:
+        if path is None:
+            return None
         if ("/" in path or "\\" in path) and os.path.exists(path):
             if not os.path.isfile(path):
                 path = None
-        if path != None:
+        if path is not None:
             if shutil.which(path) is None:
                 path = None
         return path
     
     @staticmethod
-    def _get_absolute_path(path: str):
+    def _get_absolute_path(path: str | None) -> str | None:
+        if path is None:
+            return None
         if "/" in path or "\\" in path:
             return commons.realpath(path)
         path = shutil.which(path)
@@ -46,101 +50,83 @@ class BuildArgs:
     @staticmethod
     def parseArgs(args: argparse.Namespace) -> 'BuildArgs':
         if args.workdir == None:
-            raise Exception("Argparse error: 'workdir' must be set")
+            args.workdir = os.path.realpath(os.getcwd())
+            print(f"[WARNING] 'workdir' not set. Set to default: {args.workdir}]")
 
         mode: str = args.mode
         mode = mode.lower().strip()
         if mode != "debug" and mode != "release":
             raise Exception("Argparse error: Only 'debug' or 'release' are allowed for mode")
 
-        vcpkg_path: str = BuildArgs._extract_path(args.vcpkg_path)
-        conan_path: str = BuildArgs._extract_path(args.conan_path)
+        if args.vcpkg == "" and args.conan == "":
+            args.conan = "conan"
+            print("[WARNING] No package manager has been set. Conan used by default.")
+
+        vcpkg_path = BuildArgs._extract_path(args.vcpkg)
+        conan_path = BuildArgs._extract_path(args.conan)
         if vcpkg_path is None and conan_path is None:
-            raise Exception(
-                "Argparse error: 'conan-path' or 'vcpkg-path' must be set and be a path or exe name. " +
-                "If declared package manager set without this arguments set, executable must be present in PATH"
-            )
+            raise Exception("Argparse error: if package manager not available in the path, chosen must be set to a path to executable.")
 
-        cmake_path: str = BuildArgs._extract_path(args.cmake_path)
-        if cmake_path == None:
-            raise Exception("Argparse error: 'cmake-path' must be path or exe name")
+        cmake_path = BuildArgs._extract_path(args.cmake_path)
+        if cmake_path is None:
+            raise Exception("Argparse error: if cmake is not available in PATH, 'cmake-path' must be set to path to executable")
         
-        vcpkg_path = BuildArgs._get_absolute_path(args.vcpkg_path)
-        conan_path = BuildArgs._get_absolute_path(args.conan_path)
+        vcpkg_path = BuildArgs._get_absolute_path(args.vcpkg)
+        conan_path = BuildArgs._get_absolute_path(args.conan)
         cmake_path = BuildArgs._get_absolute_path(args.cmake_path)
-
-        package_manager: str = args.package_manager
-        package_manager = package_manager.lower().strip()
-        if package_manager != "conan" and package_manager != "vcpkg":
-            raise Exception("Argparse error: Only 'conan' or 'vcpkg' are allowed for package-manager")
-
+        
         return BuildArgs(
             args.build, 
             args.rebuild,
-            commons.BASE_PATH if args.workdir is None else args.workdir,
+            commons.realpath(args.workdir),
             mode,
-            conan_path,
-            vcpkg_path,
+            conan_path if conan_path is not None else vcpkg_path, # type: ignore
             args.dependencies,
-            cmake_path,
-            package_manager,
+            cmake_path, # type: ignore
+            "conan" if conan_path is not None else "vcpkg",
             args.cmake_generator,
-            args.generate_project
+            args.generate_project,
+            args.generate_config
         )
-        
+
 
 def main():
     parser = argparse.ArgumentParser(description="Wojciechs build utilities")
     parser.add_argument('-w', '--workdir', help="Script working directory.")
     parser.add_argument('-b', '--build', default=False, action='store_true', help="CMake build.")
     parser.add_argument('-r', '--rebuild', default=False, action='store_true', help="CMake delete cache and rebuild.")
-    parser.add_argument('-m', '--mode', default="Release", help="CMake build mode. Either 'Debug' or 'Release'. ")
+    parser.add_argument('-m', '--mode', default="debug", help="CMake build mode. Either 'debug' or 'release' (case insensitive).")
     parser.add_argument('-d', '--dependencies', default=False, action='store_true', help="Download dependencies")
-    parser.add_argument('--package-manager', default="conan", help="Package manager to be used")
-    parser.add_argument('--conan-path', default="conan", help="conan2 executable path")
-    parser.add_argument('--vcpkg-path', default="vcpkg", help="vcpkg executable path")
+    parser.add_argument('--conan', help="Enable conan2 as package manager. Optional: conan2 executable path", nargs='?', const='conan')
+    parser.add_argument('--vcpkg', help="Enable vcpkg as package manager. Optional: vcpkg executable path", nargs='?', const='vcpkg')
     parser.add_argument('--cmake-path', default="cmake", help="cmake executable path")
     parser.add_argument('--cmake-generator', default=None, help="CMake generator name")
     parser.add_argument('--generate-project', default=False, action='store_true', help="Generate sample project")
+    parser.add_argument('--generate-config', default=False, action='store_true', help="Generate config file")
     
     args = parser.parse_args()
     args = BuildArgs.parseArgs(args)
-    commons.BASE_PATH = commons.realpath(args.workdir)
 
     if args.generate_project:
-        projgen.generate_project(args.package_manager, args.workdir)
+        projgen.generate_project(args.package_manager, args.package_manager_path, args.workdir)
 
     if args.dependencies:
         if args.package_manager == "conan":
-            conan.setup_paths(
-                conan_exe=args.conan_path, 
-                base_path=commons.BASE_PATH
-            )
+            conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir)
             conan.create_profiles()
             conan.install_dependencies(args.mode)
         if args.package_manager == "vcpkg":
-            vcpkg.setup_paths(
-                vcpkg_exe=args.vcpkg_path, 
-                base_path=commons.BASE_PATH
-            )
+            vcpkg.setup_paths(vcpkg_exe=args.package_manager_path, base_path=args.workdir)
             vcpkg.install_dependencies()
     
     if args.build or args.rebuild:
-        cmake.setup_paths(
-            cmake_exe=args.cmake_path,
-            base_path=commons.BASE_PATH
-        )
+        cmake.setup_paths(cmake_exe=args.cmake_path, base_path=args.workdir)
 
-        if args.package_manager == "vcpkg":
-            package_manager = cmake.VcpkgPackageManager(args.vcpkg_path)
-        else:
-            if args.package_manager != "conan":
-                print("[WARNING]: No package manager chosen. Conan set by default.")
-            conan.setup_paths(
-                conan_exe=args.conan_path, 
-                base_path=commons.BASE_PATH
-            )
+        if args.package_manager == "conan":
+            conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir)
             package_manager = cmake.ConanPackageManager(conan.get_toolchain_filepath(args.mode))
+        else:
+            package_manager = cmake.VcpkgPackageManager(args.package_manager_path)
 
         if args.build:
             cmake.configure(args.mode, package_manager, args.generator)
@@ -148,7 +134,6 @@ def main():
             cmake.delete_cache()
             cmake.configure(args.mode, package_manager, args.generator)
             cmake.build(config=args.mode)
-
 
 if __name__ == "__main__":
     main()

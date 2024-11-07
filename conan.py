@@ -3,11 +3,11 @@ import os
 import commons
 import platform
 
-_CONAN_EXE = None
-_CONAN_BASE_PATH = None
-_CONAN_HOME = None
-_CONAN_PROFILES_PATH = None
-_CONAN_DEPENDENCIES_FOLDER = None
+_CONAN_EXE: str = ""
+_CONAN_BASE_PATH: str = ""
+_CONAN_HOME: str = ""
+_CONAN_PROFILES_PATH: str = ""
+_CONAN_DEPENDENCIES_FOLDER: str = ""
 
 
 def setup_paths(conan_exe: str, base_path: str):

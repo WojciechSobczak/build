@@ -1,0 +1,19 @@
+{% macro package_manager_param(name, path) -%}
+{%- if name == "conan" -%}
+    --conan="{{path}}"
+{%- elif name == "vcpkg" -%}
+    --vcpkg="{{path}}"
+{%- else -%}
+    {{ jinja_exception("JINJA: Not expected package manager: ", name) }}
+{%- endif -%}
+{%- endmacro -%}
+
+{% macro package_manager_param_list(name, path) -%}
+{%- if name == "conan" -%}
+    "--conan", "{{path}}"
+{%- elif name == "vcpkg" -%}
+    "--vcpkg", "{{path}}"
+{%- else -%}
+    {{ jinja_exception("JINJA: Not expected package manager: ", name) }}
+{%- endif -%}
+{%- endmacro -%}
