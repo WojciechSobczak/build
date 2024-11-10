@@ -21,6 +21,10 @@ def generate_main_file() -> str:
 def generate_cmake_file() -> str:
     with open(f"{_BASE_PROJGEN_FILES_PATH}/CMakeLists.txt", "r", encoding="utf-8") as file:
         return file.read()
+    
+def generate_nasm_file() -> str:
+    with open(f"{_BASE_PROJGEN_FILES_PATH}/assembly.nasm", "r", encoding="utf-8") as file:
+        return file.read()
 
 def jinja_exception(*args, **kwargs):
     output = io.StringIO()
@@ -70,9 +74,14 @@ def generate_project(package_manager: str, package_manager_path: str, output_dir
             build_sh_template = environment.get_template("build.sh.jinja2")
             build_sh_rendered = build_sh_template.render(templates_variables)
             generated_sh_file.write(build_sh_rendered)
+
+    with open(f"{output_directory}/src/assembly.nasm", "w", encoding="utf8") as file:
+        file.write(generate_nasm_file())
     
     with open(f"{output_directory}/src/main.cpp", "w", encoding="utf8") as file:
         file.write(generate_main_file())
+
+
 
 
 
