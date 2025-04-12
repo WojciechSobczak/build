@@ -23,6 +23,7 @@ class BuildArgs:
     generator: str | None
     generate_project: bool
     generate_config: bool
+    clion: bool
     workspace_dir_name: str
 
     @staticmethod
@@ -88,8 +89,15 @@ class BuildArgs:
             generator = args.cmake_generator,
             generate_project = args.generate_project,
             generate_config = args.generate_config,
+            clion = args.clion,
             workspace_dir_name = args.workspace_dir_name
         )
+
+def setup_package_manager_paths(args: BuildArgs):
+    if args.package_manager == "conan":
+        conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir, workspace_dir_name = args.workspace_dir_name)
+    if args.package_manager == "vcpkg":
+        vcpkg.setup_paths(vcpkg_exe=args.package_manager_path, base_path=args.workdir, workspace_dir_name = args.workspace_dir_name)
 
 def main():
     parser = argparse.ArgumentParser(description="Wojciechs build utilities")
@@ -100,6 +108,7 @@ def main():
     parser.add_argument('-d', '--dependencies', default=False, action='store_true', help="Download dependencies")
     parser.add_argument('--workspace-dir-name', help="Workspace files directory name", default=".workspace")
     parser.add_argument('--conan', help="Enable conan2 as package manager. Optional: conan2 executable path", nargs='?', const='conan')
+    parser.add_argument('--clion', help="Generate files for CLion IDE", default=False, action='store_true')
     parser.add_argument('--vcpkg', help="Enable vcpkg as package manager. Optional: vcpkg executable path", nargs='?', const='vcpkg')
     parser.add_argument('--cmake-path', default="cmake", help="cmake executable path")
     parser.add_argument('--cmake-generator', default=None, help="CMake generator name")
@@ -112,15 +121,15 @@ def main():
     os.makedirs(f'{args.workdir}/{args.workspace_dir_name}', exist_ok=True)
 
     if args.generate_project:
-        projgen.generate_project(args.package_manager, args.package_manager_path, args.workdir)
+        setup_package_manager_paths(args)
+        projgen.generate_project(args.package_manager, args.package_manager_path, args.workdir, args.workspace_dir_name, args.clion)
 
     if args.dependencies:
+        setup_package_manager_paths(args)
         if args.package_manager == "conan":
-            conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir, workspace_dir_name = args.workspace_dir_name)
             conan.create_profiles()
             conan.install_dependencies(args.mode)
         if args.package_manager == "vcpkg":
-            vcpkg.setup_paths(vcpkg_exe=args.package_manager_path, base_path=args.workdir, workspace_dir_name = args.workspace_dir_name)
             vcpkg.install_dependencies()
     
     if args.build or args.rebuild:
@@ -133,7 +142,7 @@ def main():
             package_manager = cmake.VcpkgPackageManager(args.package_manager_path)
         
         if args.rebuild:
-            cmake.delete_cache()
+            cmake.delete_cache(args.mode)
             cmake.configure(args.mode, package_manager, args.generator)
         if args.build:
             cmake.build(config=args.mode)

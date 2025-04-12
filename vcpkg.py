@@ -4,8 +4,8 @@ _VCPKG_EXE: str = ""
 _VCPKG_BASE_PATH: str = ""
 _VCPKG_DEPENDENCIES_FOLDER: str = ""
 
-
-def setup_paths(vcpkg_exe: str, base_path: str):
+#TODO: ADD workspace_dir_name support
+def setup_paths(vcpkg_exe: str, base_path: str, workspace_dir_name: str):
     global _VCPKG_EXE
     global _VCPKG_BASE_PATH
     global _VCPKG_DEPENDENCIES_FOLDER

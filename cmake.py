@@ -13,7 +13,10 @@ def setup_paths(cmake_exe: str, base_path: str, workspace_dir_name: str):
     
     _CMAKE_EXE = cmake_exe
     _CMAKE_LIST_PATH = commons.realpath(base_path)
-    _CMAKE_BUILD_FOLDER = f'{_CMAKE_LIST_PATH}/{workspace_dir_name}/build'
+    _CMAKE_BUILD_FOLDER = f'{_CMAKE_LIST_PATH}/{workspace_dir_name}/cmake_build'
+
+def get_config_files_path(mode: str):
+    return f"{_CMAKE_BUILD_FOLDER}/{mode}"
 
 class PackageManager:
     def generate_toolchain_param(self): ...
@@ -39,7 +42,7 @@ def configure(config: str, package_manager: PackageManager, generator: str):
     os.makedirs(_CMAKE_BUILD_FOLDER, exist_ok=True)
     command = [
         _CMAKE_EXE,
-        f"-B", _CMAKE_BUILD_FOLDER,
+        f"-B", get_config_files_path(config),
         f"-S", _CMAKE_LIST_PATH,
         f"-DCMAKE_BUILD_TYPE={config.capitalize()}",
         f'-DCMAKE_TOOLCHAIN_FILE={package_manager.generate_toolchain_param()}'
@@ -56,8 +59,8 @@ def build(config: str):
         "--build", ".",
         "--config", config.capitalize(),
     ]
-    commons.execute_process(command, _CMAKE_BUILD_FOLDER)
+    commons.execute_process(command, get_config_files_path(config))
 
-def delete_cache():
-    if os.path.exists(_CMAKE_BUILD_FOLDER):
-        shutil.rmtree(_CMAKE_BUILD_FOLDER)
+def delete_cache(config: str):
+    if os.path.exists(get_config_files_path(config)):
+        shutil.rmtree(get_config_files_path(config))
