@@ -6,14 +6,14 @@ _CMAKE_EXE: str = ""
 _CMAKE_LIST_PATH: str = ""
 _CMAKE_BUILD_FOLDER: str = ""
 
-def setup_paths(cmake_exe: str, base_path: str):
+def setup_paths(cmake_exe: str, base_path: str, workspace_dir_name: str):
     global _CMAKE_EXE
     global _CMAKE_LIST_PATH
     global _CMAKE_BUILD_FOLDER
     
     _CMAKE_EXE = cmake_exe
     _CMAKE_LIST_PATH = commons.realpath(base_path)
-    _CMAKE_BUILD_FOLDER = f'{_CMAKE_LIST_PATH}/.build'
+    _CMAKE_BUILD_FOLDER = f'{_CMAKE_LIST_PATH}/{workspace_dir_name}/build'
 
 class PackageManager:
     def generate_toolchain_param(self): ...

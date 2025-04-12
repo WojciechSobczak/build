@@ -23,6 +23,7 @@ class BuildArgs:
     generator: str | None
     generate_project: bool
     generate_config: bool
+    workspace_dir_name: str
 
     @staticmethod
     def _extract_path(path: str | None) -> str | None:
@@ -76,19 +77,19 @@ class BuildArgs:
         cmake_path = BuildArgs._get_absolute_path(args.cmake_path)
         
         return BuildArgs(
-            args.build, 
-            args.rebuild,
-            commons.realpath(args.workdir),
-            mode,
-            conan_path if conan_path is not None else vcpkg_path, # type: ignore
-            args.dependencies,
-            cmake_path, # type: ignore
-            "conan" if conan_path is not None else "vcpkg",
-            args.cmake_generator,
-            args.generate_project,
-            args.generate_config
+            build = args.build, 
+            rebuild = args.rebuild,
+            workdir = commons.realpath(args.workdir),
+            mode = mode,
+            package_manager_path = conan_path if conan_path is not None else vcpkg_path, # type: ignore
+            dependencies = args.dependencies,
+            cmake_path = cmake_path, # type: ignore
+            package_manager = "conan" if conan_path is not None else "vcpkg",
+            generator = args.cmake_generator,
+            generate_project = args.generate_project,
+            generate_config = args.generate_config,
+            workspace_dir_name = args.workspace_dir_name
         )
-
 
 def main():
     parser = argparse.ArgumentParser(description="Wojciechs build utilities")
@@ -97,6 +98,7 @@ def main():
     parser.add_argument('-r', '--rebuild', default=False, action='store_true', help="CMake delete cache and rebuild.")
     parser.add_argument('-m', '--mode', default="debug", help="CMake build mode. Either 'debug' or 'release' (case insensitive).")
     parser.add_argument('-d', '--dependencies', default=False, action='store_true', help="Download dependencies")
+    parser.add_argument('--workspace-dir-name', help="Workspace files directory name", default=".workspace")
     parser.add_argument('--conan', help="Enable conan2 as package manager. Optional: conan2 executable path", nargs='?', const='conan')
     parser.add_argument('--vcpkg', help="Enable vcpkg as package manager. Optional: vcpkg executable path", nargs='?', const='vcpkg')
     parser.add_argument('--cmake-path', default="cmake", help="cmake executable path")
@@ -107,32 +109,33 @@ def main():
     args = parser.parse_args()
     args = BuildArgs.parseArgs(args)
 
+    os.makedirs(f'{args.workdir}/{args.workspace_dir_name}', exist_ok=True)
+
     if args.generate_project:
         projgen.generate_project(args.package_manager, args.package_manager_path, args.workdir)
 
     if args.dependencies:
         if args.package_manager == "conan":
-            conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir)
+            conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir, workspace_dir_name = args.workspace_dir_name)
             conan.create_profiles()
             conan.install_dependencies(args.mode)
         if args.package_manager == "vcpkg":
-            vcpkg.setup_paths(vcpkg_exe=args.package_manager_path, base_path=args.workdir)
+            vcpkg.setup_paths(vcpkg_exe=args.package_manager_path, base_path=args.workdir, workspace_dir_name = args.workspace_dir_name)
             vcpkg.install_dependencies()
     
     if args.build or args.rebuild:
-        cmake.setup_paths(cmake_exe=args.cmake_path, base_path=args.workdir)
+        cmake.setup_paths(cmake_exe=args.cmake_path, base_path=args.workdir, workspace_dir_name=args.workspace_dir_name)
 
         if args.package_manager == "conan":
-            conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir)
+            conan.setup_paths(conan_exe=args.package_manager_path, base_path=args.workdir, workspace_dir_name=args.workspace_dir_name)
             package_manager = cmake.ConanPackageManager(conan.get_toolchain_filepath(args.mode))
         else:
             package_manager = cmake.VcpkgPackageManager(args.package_manager_path)
-
-        if args.build:
-            cmake.configure(args.mode, package_manager, args.generator)
+        
         if args.rebuild:
             cmake.delete_cache()
             cmake.configure(args.mode, package_manager, args.generator)
+        if args.build:
             cmake.build(config=args.mode)
 
 if __name__ == "__main__":

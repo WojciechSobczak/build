@@ -8,26 +8,29 @@ _CONAN_BASE_PATH: str = ""
 _CONAN_HOME: str = ""
 _CONAN_PROFILES_PATH: str = ""
 _CONAN_DEPENDENCIES_FOLDER: str = ""
+_CONAN_WORKDIR_PATH: str = ""
 
 
-def setup_paths(conan_exe: str, base_path: str):
+def setup_paths(conan_exe: str, base_path: str, workspace_dir_name: str):
     global _CONAN_EXE
     global _CONAN_BASE_PATH
     global _CONAN_HOME
     global _CONAN_PROFILES_PATH
     global _CONAN_DEPENDENCIES_FOLDER
+    global _CONAN_WORKDIR_PATH
     
     _CONAN_EXE = conan_exe
-    _CONAN_BASE_PATH = commons.realpath(base_path)
-    _CONAN_HOME = commons.realpath(f'{_CONAN_BASE_PATH}/.conan2')
-    _CONAN_PROFILES_PATH = f'{_CONAN_HOME}/profiles'
-    _CONAN_DEPENDENCIES_FOLDER = f'{_CONAN_BASE_PATH}/.dependencies/conan'
+    _CONAN_WORKDIR_PATH = f"{commons.realpath(base_path)}/"
 
+    _CONAN_BASE_PATH = f"{_CONAN_WORKDIR_PATH}/{workspace_dir_name}"
+    _CONAN_HOME = commons.realpath(f'{_CONAN_BASE_PATH}/conan2')
+    _CONAN_PROFILES_PATH = f'{_CONAN_HOME}/profiles'
+    _CONAN_DEPENDENCIES_FOLDER = f'{_CONAN_BASE_PATH}/dependencies/conan'
 
 def _execute_command(command: str):
     env = os.environ.copy()
     env['CONAN_HOME'] = _CONAN_HOME
-    commons.execute_command(command, _CONAN_BASE_PATH, env)
+    commons.execute_command(command, _CONAN_WORKDIR_PATH, env)
 
 
 def get_toolchain_filepath(mode: str):
@@ -61,5 +64,5 @@ def install_dependencies(mode: str):
         '.',
         '--build=missing',
         f'--profile={mode.lower()}',
-        f'--output-folder=.dependencies/conan/{mode.lower()}'
+        f'--output-folder={_CONAN_DEPENDENCIES_FOLDER}/{mode.lower()}'
     ]))
