@@ -16,6 +16,7 @@ import platform
 class BuildArgs:
     build: bool
     rebuild: bool
+    config: bool
     workdir: str
     mode: str
     package_manager_path: str
@@ -83,6 +84,7 @@ class BuildArgs:
         return BuildArgs(
             build = args.build, 
             rebuild = args.rebuild,
+            config = args.cmake_config,
             workdir = commons.realpath(args.workdir),
             mode = mode,
             package_manager_path = package_manager_path, # type: ignore
@@ -105,6 +107,7 @@ def setup_package_manager_paths(args: BuildArgs):
 def main():
     parser = argparse.ArgumentParser(description="Wojciechs build utilities")
     parser.add_argument('-w', '--workdir', help="Script working directory.")
+    parser.add_argument('-c', '--cmake-config', default=False, action='store_true', help="Build cmake config.")
     parser.add_argument('-b', '--build', default=False, action='store_true', help="CMake build.")
     parser.add_argument('-r', '--rebuild', default=False, action='store_true', help="CMake delete cache and rebuild.")
     parser.add_argument('-m', '--mode', default="debug", help="CMake build mode. Either 'debug' or 'release' (case insensitive).")
@@ -144,8 +147,8 @@ def main():
             conan.install_dependencies(args.mode)
         if args.package_manager == "vcpkg":
             vcpkg.install_dependencies()
-    
-    if args.build or args.rebuild:
+
+    if args.build or args.rebuild or args.config:
         cmake.setup_paths(cmake_exe=args.cmake_path, base_path=args.workdir, workspace_dir_name=args.workspace_dir_name)
 
         if args.package_manager == "conan":
@@ -153,11 +156,12 @@ def main():
             package_manager = cmake.ConanPackageManager(conan.get_toolchain_filepath(args.mode))
         else:
             package_manager = cmake.VcpkgPackageManager(args.package_manager_path)
-        
+
         if args.rebuild:
             cmake.delete_cache(args.mode)
+        if args.rebuild or args.config:
             cmake.configure(args.mode, package_manager, args.generator)
-        if args.build:
+        if args.build or args.rebuild:
             cmake.build(config=args.mode)
 
 if __name__ == "__main__":
