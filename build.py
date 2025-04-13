@@ -7,6 +7,8 @@ import conan
 import cmake
 import vcpkg
 import projgen
+import sys
+import platform
 
 
 
@@ -119,8 +121,6 @@ def main():
     args = parser.parse_args()
     args = BuildArgs.parseArgs(args)
 
-    print(args)
-
     #Create workspace directory
     os.makedirs(f'{args.workdir}/{args.workspace_dir_name}', exist_ok=True)
 
@@ -130,6 +130,10 @@ def main():
             args.package_manager_path = conan.download_conan(args.workdir, args.workspace_dir_name)
 
     if args.generate_project:
+        if args.package_manager != "conan" or platform.system() != "Windows":
+            print("CLion generation is supported for conan only and windows for now.")
+            sys.exit(-1)
+
         setup_package_manager_paths(args)
         projgen.generate_project(args.package_manager, args.package_manager_path, args.workdir, args.workspace_dir_name, args.clion)
 
@@ -158,3 +162,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
