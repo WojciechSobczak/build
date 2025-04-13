@@ -7,8 +7,10 @@ set(CAN_USE_ASSEMBLER TRUE)
 
 find_package(ctre CONFIG REQUIRED)
 find_package(fmt REQUIRED)
+find_package(asio REQUIRED)
 
 add_executable(test "src/main.cpp" "src/assembly.nasm")
 
 target_link_libraries(test PRIVATE ctre::ctre)
 target_link_libraries(test PRIVATE fmt::fmt)
+target_link_libraries(test PRIVATE asio::asio)
