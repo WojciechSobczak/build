@@ -60,32 +60,33 @@ class BuildArgs:
         if mode != "debug" and mode != "release":
             raise Exception("Argparse error: Only 'debug' or 'release' are allowed for mode")
 
+        cmake_path = BuildArgs._extract_path(args.cmake_path)
+        if cmake_path is None:
+            raise Exception("Argparse error: if cmake is not available in PATH, 'cmake-path' must be set to path to executable")
+        cmake_path = BuildArgs._get_absolute_path(args.cmake_path)
+        
         if args.vcpkg == "" and args.conan == "":
             args.conan = "conan"
             print("[WARNING] No package manager has been set. Conan used by default.")
 
-        vcpkg_path = BuildArgs._extract_path(args.vcpkg)
-        conan_path = BuildArgs._extract_path(args.conan)
-        if vcpkg_path is None and conan_path is None:
-            raise Exception("Argparse error: if package manager not available in the path, chosen must be set to a path to executable.")
-
-        cmake_path = BuildArgs._extract_path(args.cmake_path)
-        if cmake_path is None:
-            raise Exception("Argparse error: if cmake is not available in PATH, 'cmake-path' must be set to path to executable")
-        
-        vcpkg_path = BuildArgs._get_absolute_path(args.vcpkg)
-        conan_path = BuildArgs._get_absolute_path(args.conan)
-        cmake_path = BuildArgs._get_absolute_path(args.cmake_path)
+        if args.conan != "":
+            package_manager = "conan"
+            package_manager_path = BuildArgs._extract_path(args.conan)
+            package_manager_path = BuildArgs._get_absolute_path(args.conan)
+        else:
+            package_manager = "vcpkg"
+            package_manager_path = BuildArgs._extract_path(args.vcpkg)
+            package_manager_path = BuildArgs._get_absolute_path(args.vcpkg)
         
         return BuildArgs(
             build = args.build, 
             rebuild = args.rebuild,
             workdir = commons.realpath(args.workdir),
             mode = mode,
-            package_manager_path = conan_path if conan_path is not None else vcpkg_path, # type: ignore
+            package_manager_path = package_manager_path, # type: ignore
             dependencies = args.dependencies,
             cmake_path = cmake_path, # type: ignore
-            package_manager = "conan" if conan_path is not None else "vcpkg",
+            package_manager = package_manager,
             generator = args.cmake_generator,
             generate_project = args.generate_project,
             generate_config = args.generate_config,
@@ -118,7 +119,15 @@ def main():
     args = parser.parse_args()
     args = BuildArgs.parseArgs(args)
 
+    print(args)
+
+    #Create workspace directory
     os.makedirs(f'{args.workdir}/{args.workspace_dir_name}', exist_ok=True)
+
+    #Download conan if necessary
+    if args.package_manager == "conan":
+        if conan.is_conan_in_path() == False:
+            args.package_manager_path = conan.download_conan(args.workdir, args.workspace_dir_name)
 
     if args.generate_project:
         setup_package_manager_paths(args)

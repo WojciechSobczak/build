@@ -1,7 +1,12 @@
 import configparser
 import os
+import zipfile
 import commons
 import platform
+import shutil
+import urllib.request
+import log
+import tarfile
 
 _CONAN_EXE: str = ""
 _CONAN_BASE_PATH: str = ""
@@ -9,7 +14,6 @@ _CONAN_HOME: str = ""
 _CONAN_PROFILES_PATH: str = ""
 _CONAN_DEPENDENCIES_FOLDER: str = ""
 _CONAN_WORKDIR_PATH: str = ""
-
 
 def setup_paths(conan_exe: str, base_path: str, workspace_dir_name: str):
     global _CONAN_EXE
@@ -31,6 +35,40 @@ def _execute_command(command: str):
     env = os.environ.copy()
     env['CONAN_HOME'] = _CONAN_HOME
     commons.execute_command(command, _CONAN_WORKDIR_PATH, env)
+
+
+def is_conan_in_path() -> bool:
+    return shutil.which("conan") != None
+
+
+def download_conan(base_path: str, workspace_dir_name: str) -> str:
+    conan_exec_folder = f"{base_path}/{workspace_dir_name}/conan_exec"
+
+    if platform.system() == "Windows":  
+        conan_arch_dest = f"{conan_exec_folder}/conan.zip"
+        conan_exe_file = f"{conan_exec_folder}/conan.exe"
+        download_link = "https://github.com/conan-io/conan/releases/download/2.15.0/conan-2.15.0-windows-x86_64.zip"
+    else:
+        conan_arch_dest = f"{conan_exec_folder}/conan.tgz"
+        conan_exe_file = f"{conan_exec_folder}/bin/conan"
+        download_link = "https://github.com/conan-io/conan/releases/download/2.15.0/conan-2.15.0-linux-x86_64.tgz"
+
+    if os.path.exists(conan_exe_file):
+        return conan_exe_file
+
+    os.makedirs(os.path.dirname(conan_arch_dest), exist_ok=True)
+
+    log.log("Downloading conan...")
+    urllib.request.urlretrieve(download_link, conan_arch_dest)
+    if platform.system() == "Windows":  
+        with zipfile.ZipFile(conan_arch_dest, 'r') as zip_file:
+            zip_file.extractall(conan_exec_folder)
+    else:
+        with tarfile.open(conan_arch_dest, 'r:gz') as tar_file:
+            tar_file.extractall(conan_exec_folder)
+    log.log("Conan downloaded")
+    os.remove(conan_arch_dest)
+    return conan_exe_file
 
 
 def get_toolchain_filepath(mode: str):
