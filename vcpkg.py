@@ -2,7 +2,7 @@ import zipfile
 import commons
 import os
 import shutil
-import platform
+import json
 import urllib.request
 import pathlib
 
@@ -61,9 +61,25 @@ def install_dependencies(project_dir: str, workspace_dir: str):
         "--x-packages-root", dependencies_folder,
     ], project_dir, env)
 
-def find_dependencies_cmakes(workspace_dir: str) -> list[str]:
-    search_dir = _get_vcpkg_dependencies_dir(workspace_dir)
+def find_dependencies_cmakes(project_path: str, workspace_dir: str) -> list[str]:
+    VCPKG_JSON_PATH = f"{project_path}/vcpkg.json"
+    with open(VCPKG_JSON_PATH, "r", encoding="utf-8") as f:
+        vcpkg_json = json.load(f)
+
+    exec_path = commons.realpath(_VCPKG_EXE)
+    if exec_path.startswith(workspace_dir):
+        search_dir = _get_vcpkg_dependencies_dir(workspace_dir)
+    else:
+        search_dir = os.path.dirname(exec_path)
+
+    dependencies_list: list[str] = [dep.lower() for dep in vcpkg_json["dependencies"]]
+
     result_list: list[str] = []
     for path in pathlib.Path(search_dir).rglob('*Config.cmake'):
-        result_list.append(path.parent.__str__())
+        path_str = path.parent.__str__()
+        lowercased_path = path_str.lower()
+        for dep in dependencies_list:
+            if dep in lowercased_path:
+                result_list.append(path_str)
+                break
     return result_list

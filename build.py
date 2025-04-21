@@ -127,13 +127,15 @@ def main():
     #Download package managers if necessary
     if len(args.conan_path) == 0:
         if conan.is_conan_in_path():
-            args.conan_path = "conan"
-        args.conan_path = conan.download_conan(args.workdir, args.workspace_dir_name)
+            args.conan_path = commons.realpath(shutil.which("conan"))
+        else:
+            args.conan_path = conan.download_conan(args.workdir, args.workspace_dir_name)
     
     if len(args.vcpkg_path) == 0:
-        # if vcpkg.is_vcpkg_in_path():
-        #     args.vcpkg_path = "vcpkg"
-        args.vcpkg_path = vcpkg.download_vcpkg(workspace_directory)
+        if vcpkg.is_vcpkg_in_path():
+            args.vcpkg_path = commons.realpath(shutil.which("vcpkg"))
+        else:
+            args.vcpkg_path = vcpkg.download_vcpkg(workspace_directory)
     
     conan.set_conan_exe(conan_exe=args.conan_path)
     vcpkg.set_exec_file(vcpkg_exe=args.vcpkg_path)
@@ -159,7 +161,7 @@ def main():
             cmake.configure(
                 args.mode, 
                 conan.get_toolchain_filepath(args.mode, workspace_directory), 
-                vcpkg.find_dependencies_cmakes(workspace_directory),
+                vcpkg.find_dependencies_cmakes(args.workdir, workspace_directory),
                 args.generator
             )
         if args.build or args.rebuild:
