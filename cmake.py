@@ -38,17 +38,23 @@ class VcpkgPackageManager(PackageManager):
         return vcpkg_toolchain
 
 
-def configure(config: str, package_manager: PackageManager, generator: str):
+def configure(config: str, conan_toolchain_path: str, prefix_paths: list[str], generator: str | None):
     os.makedirs(_CMAKE_BUILD_FOLDER, exist_ok=True)
+
     command = [
         _CMAKE_EXE,
         f"-B", get_config_files_path(config),
         f"-S", _CMAKE_LIST_PATH,
         f"-DCMAKE_BUILD_TYPE={config.capitalize()}",
-        f'-DCMAKE_TOOLCHAIN_FILE={package_manager.generate_toolchain_param()}'
+        f'-DCMAKE_TOOLCHAIN_FILE={conan_toolchain_path}'
     ]
     if generator is not None:
         command.append(f"-G {generator}")
+
+    prefix_path = os.pathsep.join(prefix_paths).replace('"', '\\"')
+    if len(prefix_path) > 0:
+        command.append(f"-DCMAKE_PREFIX_PATH={prefix_path}")
+        print(f"PATHS: {prefix_path}")
 
     commons.execute_process(command, _CMAKE_LIST_PATH)
 

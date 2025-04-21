@@ -2,3 +2,5 @@ test/
 .vscode
 __pycache__
 .mypy_cache
+test.bsh
+test.bat

@@ -16,3 +16,8 @@ target_link_libraries(test PRIVATE ctre::ctre)
 target_link_libraries(test PRIVATE fmt::fmt)
 target_link_libraries(test PRIVATE asio::asio)
 target_link_libraries(test PRIVATE nlohmann_json::nlohmann_json)
+
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/vcpkg.json")
+    find_package(RapidJSON REQUIRED)
+    target_link_libraries(test PRIVATE RapidJSON rapidjson)
+endif()

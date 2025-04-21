@@ -26,7 +26,7 @@ def main():
     build_args = [
         "python3", "{{script_path}}",
         "-w", "{{project_path}}",
-        {{commons.package_manager_param_list(package_manager_name, package_manager_path)}}
+        '--conan="{{conan_exe}}', '--vcpkg="{{vcpkg_exe}}'
     ]
     if len(sys.argv) >= 2:
         build_args += sys.argv[1:]

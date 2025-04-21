@@ -84,22 +84,22 @@ def generate_clion_workspace(output_directory: str, workdir: str, workspace_dir_
     
     workspace_path = f"{workdir}/{workspace_dir_name}"
     import conan
-    _find_or_create_cmake_profile(configurations, "VSDebug", {
-        "TOOLCHAIN_NAME": "Visual Studio",
-        "CONFIG_NAME": "Debug",
-        "ENABLED": "true",
-        "GENERATION_OPTIONS" : f'-DCMAKE_TOOLCHAIN_FILE="{conan.get_toolchain_filepath("debug")}"',
-        "NO_GENERATOR": "true",
-        "GENERATION_DIR": f"{workspace_path}/build/vsdebug"
-    })
-    _find_or_create_cmake_profile(configurations, "VSRelease", {
-        "TOOLCHAIN_NAME": "Visual Studio",
-        "CONFIG_NAME": "Release",
-        "ENABLED": "false",
-        "GENERATION_OPTIONS" : f'-DCMAKE_TOOLCHAIN_FILE="{conan.get_toolchain_filepath("release")}"',
-        "NO_GENERATOR": "true",
-        "GENERATION_DIR": f"{workspace_path}/build/vsrelease"
-    })
+    # _find_or_create_cmake_profile(configurations, "VSDebug", {
+    #     "TOOLCHAIN_NAME": "Visual Studio",
+    #     "CONFIG_NAME": "Debug",
+    #     "ENABLED": "true",
+    #     "GENERATION_OPTIONS" : f'-DCMAKE_TOOLCHAIN_FILE="{conan.get_toolchain_filepath("debug")}"',
+    #     "NO_GENERATOR": "true",
+    #     "GENERATION_DIR": f"{workspace_path}/build/vsdebug"
+    # })
+    # _find_or_create_cmake_profile(configurations, "VSRelease", {
+    #     "TOOLCHAIN_NAME": "Visual Studio",
+    #     "CONFIG_NAME": "Release",
+    #     "ENABLED": "false",
+    #     "GENERATION_OPTIONS" : f'-DCMAKE_TOOLCHAIN_FILE="{conan.get_toolchain_filepath("release")}"',
+    #     "NO_GENERATOR": "true",
+    #     "GENERATION_DIR": f"{workspace_path}/build/vsrelease"
+    # })
 
     os.makedirs(os.path.dirname(CLION_WORKSPACE_FILE), exist_ok=True)
     with open(CLION_WORKSPACE_FILE, "w+", encoding="UTF-8") as f:
@@ -107,7 +107,7 @@ def generate_clion_workspace(output_directory: str, workdir: str, workspace_dir_
         f.write(xml.etree.ElementTree.tostring(xml_tree, encoding="UTF-8").decode())
     
 
-def generate_project(package_manager: str, package_manager_path: str, output_directory: str, workspace_dir_name: str, clion: bool):
+def generate_project(conan_exe: str, vcpkg_exe: str, output_directory: str, workspace_dir_name: str, clion: bool):
     output_directory = commons.realpath(output_directory)
 
     if clion == True:
@@ -116,13 +116,11 @@ def generate_project(package_manager: str, package_manager_path: str, output_dir
     os.makedirs(output_directory, exist_ok=True)
     os.makedirs(f"{output_directory}/src/", exist_ok=True)
 
-    if package_manager == "conan":
-        with open(f"{output_directory}/conanfile.txt", "w", encoding="utf8") as file:
-            file.write(generate_conanfile())
+    with open(f"{output_directory}/conanfile.txt", "w", encoding="utf8") as file:
+        file.write(generate_conanfile())
 
-    if package_manager == "vcpkg":
-        with open(f"{output_directory}/vcpkg.json", "w", encoding="utf8") as file:
-            file.write(generate_vcpkg())
+    with open(f"{output_directory}/vcpkg.json", "w", encoding="utf8") as file:
+        file.write(generate_vcpkg())
 
     with open(f"{output_directory}/CMakeLists.txt", "w", encoding="utf8") as file:
         file.write(generate_cmake_file())
@@ -132,8 +130,8 @@ def generate_project(package_manager: str, package_manager_path: str, output_dir
     environment = jinja2.Environment(loader=template_loader)
     environment.globals.update(jinja_exception = jinja_exception)
     templates_variables = {
-        'package_manager_name': package_manager,
-        'package_manager_path': package_manager_path,
+        'conan_exe': conan_exe,
+        'vcpkg_exe': vcpkg_exe,
         'project_path': output_directory,
         'script_path': commons.realpath(f"{os.path.dirname(__file__)}/build.py")
     }
