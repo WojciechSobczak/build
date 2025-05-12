@@ -1,5 +1,5 @@
 {
     "dependencies": [
-        "rapidjson" 
+        "rapidjson", "fmt", "ctre", "nlohmann-json"
     ]
 }

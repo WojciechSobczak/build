@@ -8,8 +8,6 @@ import urllib.request
 import log
 import tarfile
 
-_CONAN_EXE: str = ""
-
 def _get_conan_home(workspace_dir: str):
     return f'{workspace_dir}/conan2'
 
@@ -18,10 +16,6 @@ def _get_conan_profiles_path(workspace_dir: str):
 
 def _get_conan_dependencies_path(workspace_dir: str):
     return f'{workspace_dir}/dependencies/conan'
-
-def set_conan_exe(conan_exe: str):
-    global _CONAN_EXE
-    _CONAN_EXE = conan_exe
 
 def _execute_command(command: str, project_dir: str, workspace_dir: str):
     env = os.environ.copy()
@@ -33,8 +27,8 @@ def is_conan_in_path() -> bool:
     return shutil.which("conan") != None
 
 
-def download_conan(base_path: str, workspace_dir_name: str) -> str:
-    conan_exec_folder = f"{base_path}/{workspace_dir_name}/conan_exec"
+def download_conan(workspace_directory: str) -> str:
+    conan_exec_folder = f"{workspace_directory}/conan_exec"
 
     if platform.system() == "Windows":  
         conan_arch_dest = f"{conan_exec_folder}/conan.zip"
@@ -70,8 +64,8 @@ def get_toolchain_filepath(mode: str, workspace_dir: str):
     return f'{file_path}/generators/conan_toolchain.cmake'
 
 
-def create_profiles(project_dir: str, workspace_dir: str):
-    _execute_command(f"{_CONAN_EXE} profile detect --force", project_dir, workspace_dir)
+def create_profiles(conan_executable: str, project_dir: str, workspace_dir: str):
+    _execute_command(f"{conan_executable} profile detect --force", project_dir, workspace_dir)
 
     conan_profiles_path = _get_conan_profiles_path(workspace_dir)
     config = configparser.ConfigParser()
@@ -88,9 +82,9 @@ def create_profiles(project_dir: str, workspace_dir: str):
         config.write(file)
 
 
-def install_dependencies(mode: str, project_dir: str, workspace_dir: str):
+def install_dependencies(conan_executable: str, mode: str, project_dir: str, workspace_dir: str):
     _execute_command(' '.join([
-        _CONAN_EXE,
+        conan_executable,
         'install',
         '.',
         '--build=missing',

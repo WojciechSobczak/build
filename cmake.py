@@ -1,6 +1,9 @@
 import os
 import commons
 import shutil
+import conan
+import vcpkg
+from package_manager import PackageManager
 
 _CMAKE_EXE: str = ""
 _CMAKE_LIST_PATH: str = ""
@@ -17,28 +20,16 @@ def setup_paths(cmake_exe: str, base_path: str, workspace_dir_name: str):
 
 def get_config_files_path(mode: str):
     return f"{_CMAKE_BUILD_FOLDER}/{mode}"
-
-class PackageManager:
-    def generate_toolchain_param(self): ...
-
-class ConanPackageManager(PackageManager):
-    def __init__(self, conan_toolchain_file: str) -> None:
-        self.conan_toolchain_file = conan_toolchain_file
-
-    def generate_toolchain_param(self):
-        return self.conan_toolchain_file
     
-class VcpkgPackageManager(PackageManager):
-    def __init__(self, vcpkg_path: str) -> None:
-        self.vcpkg_path = vcpkg_path
 
-    def generate_toolchain_param(self):
-        vcpkg_toolchain = commons.normalize_path(os.path.dirname(self.vcpkg_path))
-        vcpkg_toolchain += "/scripts/buildsystems/vcpkg.cmake"
-        return vcpkg_toolchain
-
-
-def configure(config: str, conan_toolchain_path: str, prefix_paths: list[str], generator: str | None):
+def configure(
+    config: str, 
+    package_manager: PackageManager, 
+    workspace_dir: str,
+    project_dir: str,
+    vcpkg_exe: str | None,
+    generator: str | None
+):
     os.makedirs(_CMAKE_BUILD_FOLDER, exist_ok=True)
 
     command = [
@@ -46,19 +37,30 @@ def configure(config: str, conan_toolchain_path: str, prefix_paths: list[str], g
         f"-B", get_config_files_path(config),
         f"-S", _CMAKE_LIST_PATH,
         f"-DCMAKE_BUILD_TYPE={config.capitalize()}",
-        f'-DCMAKE_TOOLCHAIN_FILE={conan_toolchain_path}'
+        
     ]
+
+    if package_manager == PackageManager.CONAN or package_manager == PackageManager.ALL:
+        command.append(f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config, workspace_dir)}')
+    elif package_manager == PackageManager.VCPKG and package_manager != PackageManager.ALL:
+        if vcpkg_exe is None:
+            raise Exception("configure() if vcpkg set as package manager path must be set")
+        command.append(f'-DCMAKE_TOOLCHAIN_FILE={vcpkg.get_toolchain_path(vcpkg_exe)}')
+    elif package_manager == PackageManager.ALL:
+        if vcpkg_exe is None:
+            raise Exception("configure(): vcpkg_exe has to be set in order to find dependencies when 'all' is set")
+        prefix_paths = vcpkg.find_dependencies_cmakes(vcpkg_exe, project_dir, workspace_dir)
+        prefix_path = os.pathsep.join(prefix_paths).replace('"', '\\"')
+        if len(prefix_path) > 0:
+            command.append(f"-DCMAKE_PREFIX_PATH={prefix_path}")
+            print(f"PATHS: {prefix_path}")
+            
     if generator is not None:
         command.append(f"-G {generator}")
 
-    prefix_path = os.pathsep.join(prefix_paths).replace('"', '\\"')
-    if len(prefix_path) > 0:
-        command.append(f"-DCMAKE_PREFIX_PATH={prefix_path}")
-        print(f"PATHS: {prefix_path}")
-
     commons.execute_process(command, _CMAKE_LIST_PATH)
 
-def build(config: str):
+def build_project(config: str):
     os.makedirs(_CMAKE_BUILD_FOLDER, exist_ok=True)
     command = [
         _CMAKE_EXE,

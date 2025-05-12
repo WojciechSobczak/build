@@ -9,8 +9,7 @@ import vcpkg
 import projgen
 import sys
 import platform
-
-
+from package_manager import PackageManager
 
 @dataclasses.dataclass
 class BuildArgs:
@@ -19,8 +18,9 @@ class BuildArgs:
     config: bool
     workdir: str
     mode: str
-    conan_path: str
-    vcpkg_path: str
+    conan_path: str | None
+    vcpkg_path: str | None
+    package_manager: PackageManager
     dependencies: bool
     cmake_path: str
     generator: str | None
@@ -53,7 +53,7 @@ class BuildArgs:
         return path
 
     @staticmethod
-    def parseArgs(args: argparse.Namespace) -> 'BuildArgs':
+    def parse_args_and_setup_tools(args: argparse.Namespace) -> 'BuildArgs':
         if args.workdir == None:
             args.workdir = os.path.realpath(os.getcwd())
             print(f"[WARNING] 'workdir' not set. Set to default: {args.workdir}]")
@@ -67,14 +67,28 @@ class BuildArgs:
         if cmake_path is None:
             raise Exception("Argparse error: if cmake is not available in PATH, 'cmake-path' must be set to path to executable")
         cmake_path = BuildArgs._get_absolute_path(args.cmake_path)
+        if cmake_path is None:
+            raise Exception("Argparse error: if cmake is not available in PATH, 'cmake-path' must be set to path to executable")
 
-        conan_path = BuildArgs._extract_path(args.conan)
-        if conan_path is None:
-            conan_path = ""
+        conan_path: str | None = None
+        vcpkg_path: str | None = None
+        package_manager: PackageManager = PackageManager.ALL
 
-        vcpkg_path = BuildArgs._extract_path(args.vcpkg)
-        if vcpkg_path is None:
-            vcpkg_path = ""
+        workspace_directory = f'{args.workdir}/{args.workspace_dir_name}'
+        if args.package_manager == "conan" or args.package_manager == "all":
+            conan_path = BuildArgs._extract_path(args.conan)
+            if conan_path is None:
+                conan_path = conan.download_conan(workspace_directory)
+            package_manager = PackageManager.CONAN
+        elif args.package_manager == "vcpkg" or args.package_manager == "all":
+            vcpkg_path = BuildArgs._extract_path(args.vcpkg)
+            if vcpkg_path is None:
+                vcpkg_path = vcpkg.download_vcpkg(workspace_directory)
+            package_manager = PackageManager.VCPKG
+        elif args.package_manager == "all":
+            package_manager = PackageManager.ALL
+        else:
+            raise Exception("Argparse error: Package manager must be set.")
         
         return BuildArgs(
             build = args.build, 
@@ -82,10 +96,11 @@ class BuildArgs:
             config = args.cmake_config,
             workdir = commons.realpath(args.workdir),
             mode = mode,
-            conan_path = conan_path, # type: ignore
             dependencies = args.dependencies,
-            cmake_path = cmake_path, # type: ignore
+            conan_path = conan_path,
+            cmake_path = cmake_path,
             vcpkg_path = vcpkg_path,
+            package_manager = package_manager,
             generator = args.cmake_generator,
             generate_project = args.generate_project,
             generate_config = args.generate_config,
@@ -105,68 +120,70 @@ def main():
     parser.add_argument('--clion', help="Generate files for CLion IDE", default=False, action='store_true')
     parser.add_argument('--cmake-path', default="cmake", help="cmake executable path")
     parser.add_argument('--cmake-generator', default=None, help="CMake generator name")
-    parser.add_argument('--generate-project', default=False, action='store_true', help="Generate sample project")
-    parser.add_argument('--generate-config', default=False, action='store_true', help="Generate config file")
-
+    parser.add_argument('--generate-project', '--projgen', default=False, action='store_true', help="Generate sample project")
+    parser.add_argument('--generate-config', '--confgen', default=False, action='store_true', help="Generate config file")
+    parser.add_argument('--package-manager', default="conan", help="Package manager to generate project with.", choices=["conan", "vcpkg", "all"])
     parser.add_argument('--conan', help="""
-        Conan package manager executable path. Options: [<path to executable>, 'conan', 'local'] Default: 'local'. Option 'conan' will search in path first.
+        Conan package manager executable path. Options: [<path to executable>, 'conan'] 
+        Default: 'conan'. Option 'conan' will search in path first.
         If conan not present in path it will download conan executable and use it.
     """, nargs='?', const='conan')
     parser.add_argument('--vcpkg', help="""
-        VCPKG package manager executable path. Options: [<path to executable>, 'vcpkg', 'local'] Default: 'local'. Option 'vcpkg' will search in path first.
+        VCPKG package manager executable path. Options: [<path to executable>, 'vcpkg'] 
+        Default: 'vcpkg'. Option 'vcpkg' will search in path first.
         If vcpkg not present in path it will download conan executable and use it.
     """, nargs='?', const='vcpkg')
     
     args = parser.parse_args()
-    args = BuildArgs.parseArgs(args)
+    args = BuildArgs.parse_args_and_setup_tools(args)
 
     #Create workspace directory
     workspace_directory = f'{args.workdir}/{args.workspace_dir_name}'
     os.makedirs(workspace_directory, exist_ok=True)
-
-    #Download package managers if necessary
-    if len(args.conan_path) == 0:
-        if conan.is_conan_in_path():
-            args.conan_path = commons.realpath(shutil.which("conan"))
-        else:
-            args.conan_path = conan.download_conan(args.workdir, args.workspace_dir_name)
-    
-    if len(args.vcpkg_path) == 0:
-        if vcpkg.is_vcpkg_in_path():
-            args.vcpkg_path = commons.realpath(shutil.which("vcpkg"))
-        else:
-            args.vcpkg_path = vcpkg.download_vcpkg(workspace_directory)
-    
-    conan.set_conan_exe(conan_exe=args.conan_path)
-    vcpkg.set_exec_file(vcpkg_exe=args.vcpkg_path)
     
     if args.generate_project:
         if platform.system() != "Windows" and args.clion == True:
-            print("CLion generation is supported for conan only and windows for now.")
-            sys.exit(-1)
-        projgen.generate_project(args.conan_path, args.vcpkg_path, args.workdir, args.workspace_dir_name, args.clion)
+            raise Exception("CLion generation is supported for conan only and windows for now.")
+        projgen.generate_project(
+            package_manager=args.package_manager, 
+            conan_exe=args.conan_path, 
+            vcpkg_exe=args.vcpkg_path, 
+            output_directory=args.workdir,
+            workspace_dir_name=args.workspace_dir_name,
+            clion=args.clion
+        )
 
     if args.dependencies:
-        conan.create_profiles(args.workdir, workspace_directory)
-        conan.install_dependencies(args.mode, args.workdir, workspace_directory)
-        if os.path.exists(f'{args.workdir}/vcpkg.json'):
-            vcpkg.install_dependencies(args.workdir, workspace_directory)
+        if args.package_manager == PackageManager.CONAN or args.package_manager == PackageManager.ALL:
+            if not os.path.exists(f'{args.workdir}/conanfile.txt'):
+                raise Exception("Conan chosen as package manager, but conanfile.txt does not exist.")
+            conan.create_profiles(args.conan_path, args.workdir, workspace_directory)
+            conan.install_dependencies(args.conan_path, args.mode, args.workdir, workspace_directory)
+        if args.package_manager == PackageManager.VCPKG or args.package_manager == PackageManager.ALL:
+            if not os.path.exists(f'{args.workdir}/vcpkg.json'):
+                raise Exception("Vcpkg chosen as package manager, but vcpkg.json does not exist.")
+            vcpkg.install_dependencies(args.vcpkg_path, args.workdir, workspace_directory)
 
     if args.build or args.rebuild or args.config:
         cmake.setup_paths(cmake_exe=args.cmake_path, base_path=args.workdir, workspace_dir_name=args.workspace_dir_name)
-
         if args.rebuild:
             cmake.delete_cache(args.mode)
         if args.rebuild or args.config:
             cmake.configure(
-                args.mode, 
-                conan.get_toolchain_filepath(args.mode, workspace_directory), 
-                vcpkg.find_dependencies_cmakes(args.workdir, workspace_directory),
-                args.generator
+                config=args.mode, 
+                package_manager=args.package_manager, 
+                project_dir=args.workdir, 
+                workspace_dir=workspace_directory,
+                vcpkg_exe=args.vcpkg_path,
+                generator=args.generator
             )
         if args.build or args.rebuild:
-            cmake.build(config=args.mode)
+            cmake.build_project(config=args.mode)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"[ERROR] {e}")
+        sys.exit(-1)
     

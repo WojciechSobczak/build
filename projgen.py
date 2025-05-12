@@ -3,10 +3,12 @@ import io
 import xml.etree
 import xml.etree.ElementTree
 import xml.etree.cElementTree
+import build
 import commons
 import os
 import jinja2
 import xml
+from package_manager import PackageManager
 
 _BASE_PROJGEN_FILES_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/projgen_files/"
 
@@ -20,10 +22,6 @@ def generate_vcpkg() -> str:
     
 def generate_main_file() -> str:
     with open(f"{_BASE_PROJGEN_FILES_PATH}/main.cpp", "r", encoding="utf-8") as file:
-        return file.read()
-    
-def generate_cmake_file() -> str:
-    with open(f"{_BASE_PROJGEN_FILES_PATH}/CMakeLists.txt", "r", encoding="utf-8") as file:
         return file.read()
     
 def generate_nasm_file() -> str:
@@ -107,7 +105,14 @@ def generate_clion_workspace(output_directory: str, workdir: str, workspace_dir_
         f.write(xml.etree.ElementTree.tostring(xml_tree, encoding="UTF-8").decode())
     
 
-def generate_project(conan_exe: str, vcpkg_exe: str, output_directory: str, workspace_dir_name: str, clion: bool):
+def generate_project(
+    package_manager: PackageManager, 
+    conan_exe: str | None, 
+    vcpkg_exe: str | None, 
+    output_directory: str, 
+    workspace_dir_name: str, 
+    clion: bool
+):
     output_directory = commons.realpath(output_directory)
 
     if clion == True:
@@ -116,15 +121,18 @@ def generate_project(conan_exe: str, vcpkg_exe: str, output_directory: str, work
     os.makedirs(output_directory, exist_ok=True)
     os.makedirs(f"{output_directory}/src/", exist_ok=True)
 
-    with open(f"{output_directory}/conanfile.txt", "w", encoding="utf8") as file:
-        file.write(generate_conanfile())
-
-    with open(f"{output_directory}/vcpkg.json", "w", encoding="utf8") as file:
-        file.write(generate_vcpkg())
-
-    with open(f"{output_directory}/CMakeLists.txt", "w", encoding="utf8") as file:
-        file.write(generate_cmake_file())
-
+    if package_manager == PackageManager.CONAN or package_manager == PackageManager.ALL:
+        if conan_exe is None:
+            raise Exception("Package manager set to conan but executable not set.")
+        with open(f"{output_directory}/conanfile.txt", "w", encoding="utf8") as file:
+            file.write(generate_conanfile())
+    elif package_manager == PackageManager.VCPKG or package_manager == PackageManager.ALL:
+        if vcpkg_exe is None:
+            raise Exception("Package manager set to vcpkg but executable not set.")
+        with open(f"{output_directory}/vcpkg.json", "w", encoding="utf8") as file:
+            file.write(generate_vcpkg())
+    else:
+         raise Exception(f"Unexpected package manager: {package_manager}")
 
     template_loader = jinja2.FileSystemLoader(searchpath=_BASE_PROJGEN_FILES_PATH)
     environment = jinja2.Environment(loader=template_loader)
@@ -132,9 +140,14 @@ def generate_project(conan_exe: str, vcpkg_exe: str, output_directory: str, work
     templates_variables = {
         'conan_exe': conan_exe,
         'vcpkg_exe': vcpkg_exe,
-        'project_path': output_directory,
+        'package_manager': package_manager.value[0],
         'script_path': commons.realpath(f"{os.path.dirname(__file__)}/build.py")
     }
+
+    with open(f"{output_directory}/CMakeLists.txt", "w", encoding="utf8") as generated_cmakelists_file:
+        cmakelists_template = environment.get_template("CMakeLists.txt.jinja2")
+        cmakelists_rendered = cmakelists_template.render(templates_variables)
+        generated_cmakelists_file.write(cmakelists_rendered)
     
     with open(f"{output_directory}/build.py", "w", encoding="utf8") as generated_python_file:
         build_py_template = environment.get_template("build.py.jinja2")

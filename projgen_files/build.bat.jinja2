@@ -1,4 +1,5 @@
 {%- import 'commons.jinja2' as commons -%}
+
 SET script_name="{{script_path}}"
 SET project_path="{{project_path}}"
-python3 %script_name% -w %project_path% --conan="{{conan_exe}}" --vcpkg="{{vcpkg_exe}}" %*
+python3 %script_name% -w %project_path% {{commons.package_manager_param(package_manager, conan_exe, vcpkg_exe)}} %*
