@@ -8,61 +8,86 @@ import urllib.request
 import log
 import tarfile
 
-def _get_conan_home(workspace_dir: str):
-    return f'{workspace_dir}/conan2'
+"""
+conan default structure for this configuration looks like this:
 
-def _get_conan_profiles_path(workspace_dir: str):
+For 2.23.0
+WINDOWS:
+    WORKSPACE_DIR/conan:
+        - conan2_home
+        - _internal
+        - conan.exe
+LINUX:
+    WORKSPACE_DIR/conan:
+        - conan2_home
+        - bin/
+            - internal
+            - conan
+"""
+
+def _conan_2_23_0_get_exec_path(workspace_dir: str) -> str:
+    if commons.is_windows():
+        return f'{workspace_dir}/conan/conan.exe'
+    else:
+        return f'{workspace_dir}/conan/bin/conan'
+
+def _conan_2_23_0_download(workspace_dir: str) -> str:
+    if not commons.is_windows() and not commons.is_linux():
+        log.info(f"Unsupported system: {platform.system()}")
+        exit(-1)
+
+    system_string = "windows" if commons.is_windows() else "linux"
+    archive_ext = "zip" if commons.is_windows() else "tgz"
+    link = f"https://github.com/conan-io/conan/releases/download/2.23.0/conan-2.23.0-{system_string}-x86_64.{archive_ext}"
+    extract_path = f'{workspace_dir}/conan'
+    archive_path = f'{workspace_dir}/conan-2.23.0.{archive_ext}'
+
+    log.info("Downloading conan...")
+    urllib.request.urlretrieve(link, archive_path)
+    log.info("Conan downloaded")
+
+    log.info("Unpacking conan...")
+    if platform.system() == "Windows":  
+        with zipfile.ZipFile(archive_path, 'r') as zip_file:
+            zip_file.extractall(extract_path)
+    else:
+        with tarfile.open(archive_path, 'r:gz') as tar_file:
+            tar_file.extractall(extract_path)
+
+    log.info("Conan unpacked")
+    return f'{extract_path}'
+
+def _get_conan_home(workspace_dir: str) -> str:
+    return f'{workspace_dir}/conan2_home'
+
+def _get_conan_profiles_path(workspace_dir: str) -> str:
     return f'{_get_conan_home(workspace_dir)}/profiles'
 
-def _get_conan_dependencies_path(workspace_dir: str):
-    return f'{workspace_dir}/dependencies/conan'
+def _get_conan_dependencies_path(workspace_dir: str) -> str:
+    return f'{_get_conan_home(workspace_dir)}/dependencies'
 
 def _execute_command(command: str, project_dir: str, workspace_dir: str):
     env = os.environ.copy()
     env['CONAN_HOME'] = _get_conan_home(workspace_dir)
     commons.execute_command(command, project_dir, env)
 
+def download_conan(workspace_dir: str) -> str:
+    return _conan_2_23_0_download(workspace_dir)
 
-def is_conan_in_path() -> bool:
+def is_conan_systemwide_installed() -> bool:
     return shutil.which("conan") != None
 
+def is_conan_in_workspace_toolset(workspace_dir: str) -> bool:
+    return os.path.exists(_conan_2_23_0_get_exec_path(workspace_dir))
 
-def download_conan(workspace_directory: str) -> str:
-    conan_exec_folder = f"{workspace_directory}/conan_exec"
+def get_toolset_conan_exe_path(workspace_dir: str) -> str:
+    return _conan_2_23_0_get_exec_path(workspace_dir)
 
-    if platform.system() == "Windows":  
-        conan_arch_dest = f"{conan_exec_folder}/conan.zip"
-        conan_exe_file = f"{conan_exec_folder}/conan.exe"
-        download_link = "https://github.com/conan-io/conan/releases/download/2.15.0/conan-2.15.0-windows-x86_64.zip"
-    else:
-        conan_arch_dest = f"{conan_exec_folder}/conan.tgz"
-        conan_exe_file = f"{conan_exec_folder}/bin/conan"
-        download_link = "https://github.com/conan-io/conan/releases/download/2.15.0/conan-2.15.0-linux-x86_64.tgz"
-
-    if os.path.exists(conan_exe_file):
-        return conan_exe_file
-
-    os.makedirs(os.path.dirname(conan_arch_dest), exist_ok=True)
-
-    log.log("Downloading conan...")
-    urllib.request.urlretrieve(download_link, conan_arch_dest)
-    if platform.system() == "Windows":  
-        with zipfile.ZipFile(conan_arch_dest, 'r') as zip_file:
-            zip_file.extractall(conan_exec_folder)
-    else:
-        with tarfile.open(conan_arch_dest, 'r:gz') as tar_file:
-            tar_file.extractall(conan_exec_folder)
-    log.log("Conan downloaded")
-    os.remove(conan_arch_dest)
-    return conan_exe_file
-
-
-def get_toolchain_filepath(mode: str, workspace_dir: str):
+def get_toolchain_filepath(mode: str, workspace_dir: str) -> str:
     file_path = f'{_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}/build/'
-    if platform.system() != "Windows":
+    if not commons.is_windows():
         file_path += f'{mode.capitalize()}/'
     return f'{file_path}/generators/conan_toolchain.cmake'
-
 
 def create_profiles(conan_executable: str, project_dir: str, workspace_dir: str):
     _execute_command(f"{conan_executable} profile detect --force", project_dir, workspace_dir)
@@ -81,8 +106,7 @@ def create_profiles(conan_executable: str, project_dir: str, workspace_dir: str)
     with open(f'{conan_profiles_path}/debug', "w", encoding="UTF-8") as file:
         config.write(file)
 
-
-def install_dependencies(conan_executable: str, mode: str, project_dir: str, workspace_dir: str):
+def download_dependencies(conan_executable: str, mode: str, project_dir: str, workspace_dir: str):
     _execute_command(' '.join([
         conan_executable,
         'install',
