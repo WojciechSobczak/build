@@ -2,8 +2,6 @@ import platform
 import io
 import xml.etree
 import xml.etree.ElementTree
-import xml.etree.cElementTree
-import build
 import commons
 import os
 import jinja2

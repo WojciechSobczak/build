@@ -1,6 +1,7 @@
 import os
 import subprocess
 import re
+import platform
 
 def normalize_path(path: str):
     path = path.replace('\\', '/')
@@ -26,3 +27,9 @@ def execute_process(command: list[str], cwd: str, env = None):
     process = subprocess.run(args=command, cwd = cwd, env=env)
     if process.returncode != 0:
         raise Exception(f"Non zero return code: {process.returncode}")
+    
+def is_windows():
+    return platform.system() == "Windows"
+
+def is_linux():
+    return platform.system() == "Linux"

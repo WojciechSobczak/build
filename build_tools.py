@@ -170,7 +170,7 @@ def main():
             cmake.delete_cache(args.mode)
         if args.rebuild or args.config:
             cmake.configure(
-                config=args.mode, 
+                mode=args.mode, 
                 package_manager=args.package_manager, 
                 project_dir=args.workdir, 
                 workspace_dir=workspace_directory,
