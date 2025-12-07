@@ -118,21 +118,8 @@ def configure(
         f"-DCMAKE_BUILD_TYPE={mode.capitalize()}"
     ]
 
-    #if package_manager == PackageManager.CONAN or package_manager == PackageManager.ALL:
     command.append(f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(mode, workspace_dir)}')
-        
-    # elif package_manager == PackageManager.VCPKG and package_manager != PackageManager.ALL:
-    #     if vcpkg_exe is None:
-    #         raise Exception("configure() if vcpkg set as package manager path must be set")
-    #     command.append(f'-DCMAKE_TOOLCHAIN_FILE={vcpkg.get_toolchain_path(vcpkg_exe)}')
-    # elif package_manager == PackageManager.ALL:
-    #     if vcpkg_exe is None:
-    #         raise Exception("configure(): vcpkg_exe has to be set in order to find dependencies when 'all' is set")
-    #     prefix_paths = vcpkg.find_dependencies_cmakes(vcpkg_exe, project_dir, workspace_dir)
-    #     prefix_path = os.pathsep.join(prefix_paths).replace('"', '\\"')
-    #     if len(prefix_path) > 0:
-    #         command.append(f"-DCMAKE_PREFIX_PATH={prefix_path}")
-            
+
     # if generator is not None:
     #     command.append(f"-G {generator}")
 

@@ -6,7 +6,8 @@
 # it as you like
 # HF
 
-import sys, os
+import os
+import sys
 WORKSPACE_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/.workspace'
 sys.path.append(WORKSPACE_DIR)
 PROJECT_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/'
@@ -20,6 +21,9 @@ def setup_toolset():
     if not build_tools.conan.is_conan_systemwide_installed():
         if not build_tools.conan.is_conan_in_workspace_toolset(WORKSPACE_DIR):
             build_tools.conan.download_conan(WORKSPACE_DIR)
+    if not build_tools.vcpkg.is_vcpkg_systemwide_installed():
+        if not build_tools.vcpkg.is_vcpkg_in_workspace_toolset(WORKSPACE_DIR):
+            build_tools.vcpkg.download_vcpkg(WORKSPACE_DIR)
 
 def main():
     parser = argparse.ArgumentParser(description="Wojciechs build utilities")
@@ -32,6 +36,7 @@ def main():
 
     parser.add_argument('--cmake-path-override', type=str, help="Override cmake executable path.")
     parser.add_argument('--conan-path-override', type=str, help="Override conan executable path.")
+    parser.add_argument('--vcpkg-path-override', type=str, help="Override vcpkg executable path.")
     args = parser.parse_args()
 
     if args.setup_toolset:
@@ -48,6 +53,11 @@ def main():
         
         build_tools.conan.create_profiles(conan_exe, PROJECT_DIR, WORKSPACE_DIR)
         build_tools.conan.download_dependencies(conan_exe, args.mode, PROJECT_DIR, WORKSPACE_DIR)
+
+        vcpkg_exe = build_tools.vcpkg.get_toolset_vcpkg_exe_path(WORKSPACE_DIR)
+        if args.vcpkg_path_override != None:
+            vcpkg_exe = args.vcpkg_path_override
+        build_tools.vcpkg.download_dependencies(vcpkg_exe, WORKSPACE_DIR, PROJECT_DIR)
 
     cmake_config = build_tools.cmake.CMakeConfig(
         cmake_exe = cmake_exe,
