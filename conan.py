@@ -1,12 +1,13 @@
 import configparser
 import os
 import zipfile
-import commons
 import platform
 import shutil
 import urllib.request
-import log
 import tarfile
+
+from . import log
+from . import commons
 
 """
 conan default structure for this configuration looks like this:
@@ -42,6 +43,10 @@ def _conan_2_23_0_download(workspace_dir: str) -> str:
     extract_path = f'{workspace_dir}/conan'
     archive_path = f'{workspace_dir}/conan-2.23.0.{archive_ext}'
 
+    if os.path.exists(extract_path):
+        log.info("Previous conan download exists. Deleting...")
+        commons.delete_dir(extract_path)
+
     log.info("Downloading conan...")
     urllib.request.urlretrieve(link, archive_path)
     log.info("Conan downloaded")
@@ -66,9 +71,12 @@ def _get_conan_profiles_path(workspace_dir: str) -> str:
 def _get_conan_dependencies_path(workspace_dir: str) -> str:
     return f'{_get_conan_home(workspace_dir)}/dependencies'
 
-def _execute_command(command: str, project_dir: str, workspace_dir: str):
+def _execute_command(command: str, project_dir: str, workspace_dir: str, ninja_exe: str | None = None):
     env = os.environ.copy()
     env['CONAN_HOME'] = _get_conan_home(workspace_dir)
+    if ninja_exe != None:
+        # Value of type variable "AnyOrLiteralStr" of "dirname" cannot be "str | None". REASON: But it can actually.
+        env['PATH'] = os.path.dirname(ninja_exe) + os.pathsep + env['PATH'] # type: ignore
     commons.execute_command(command, project_dir, env)
 
 def download_conan(workspace_dir: str) -> str:
@@ -83,13 +91,13 @@ def is_conan_in_workspace_toolset(workspace_dir: str) -> bool:
 def get_toolset_conan_exe_path(workspace_dir: str) -> str:
     return _conan_2_23_0_get_exec_path(workspace_dir)
 
-def get_toolchain_filepath(mode: str, workspace_dir: str) -> str:
+def get_toolchain_filepath(mode: str, workspace_dir: str, ninja_generator: bool = True) -> str:
     file_path = f'{_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}/build/'
-    if not commons.is_windows():
+    if not commons.is_windows() or ninja_generator:
         file_path += f'{mode.capitalize()}/'
     return f'{file_path}/generators/conan_toolchain.cmake'
 
-def create_profiles(conan_executable: str, project_dir: str, workspace_dir: str):
+def create_profiles(conan_executable: str, cmake_executable: str, project_dir: str, workspace_dir: str, ninja_generator: bool):
     _execute_command(f"{conan_executable} profile detect --force", project_dir, workspace_dir)
 
     conan_profiles_path = _get_conan_profiles_path(workspace_dir)
@@ -98,6 +106,11 @@ def create_profiles(conan_executable: str, project_dir: str, workspace_dir: str)
 
     config['settings']['build_type'] = "Release"
     config['settings']['compiler.cppstd'] = "23"
+    
+    config.add_section('conf')
+    config['conf']['tools.cmake:cmake_program'] = cmake_executable
+    if ninja_generator:
+        config['conf']['tools.cmake.cmaketoolchain:generator'] = "Ninja"
 
     with open(f'{conan_profiles_path}/release', "w") as file:
         config.write(file)
@@ -106,7 +119,7 @@ def create_profiles(conan_executable: str, project_dir: str, workspace_dir: str)
     with open(f'{conan_profiles_path}/debug', "w", encoding="UTF-8") as file:
         config.write(file)
 
-def download_dependencies(conan_executable: str, mode: str, project_dir: str, workspace_dir: str):
+def download_dependencies(conan_executable: str, mode: str, project_dir: str, workspace_dir: str, ninja_exe: str | None = None):
     _execute_command(' '.join([
         conan_executable,
         'install',
@@ -114,4 +127,4 @@ def download_dependencies(conan_executable: str, mode: str, project_dir: str, wo
         '--build=missing',
         f'--profile={mode.lower()}',
         f'--output-folder={_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}'
-    ]), project_dir, workspace_dir)
+    ]), project_dir, workspace_dir, ninja_exe)

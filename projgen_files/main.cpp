@@ -12,5 +12,7 @@ int main() {
         auto json = nlohmann::json::parse(R"({"Hello": "World"})");
         fmt::println("{}", json.dump());
     }
+
+    fmt::println("Assembly gave us: {}", assemblyFunction());
     return 0;
 }

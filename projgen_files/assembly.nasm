@@ -3,5 +3,5 @@ section .data
 section .text
 
 assemblyFunction:
-    mov eax, 0
+    mov eax, 12
     ret
