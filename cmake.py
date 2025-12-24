@@ -6,7 +6,6 @@ import commons
 import shutil
 import conan
 import vcpkg
-from package_manager import PackageManager
 import dataclasses
 import log
 import platform
@@ -85,9 +84,6 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
     exe_ext = ".exe" if commons.is_windows() else ""
     return f'{unified_extracted_path}/bin/cmake{exe_ext}'
 
-
-
-
 def get_config_files_path(config: CMakeConfig, mode: str) -> str:
     return f"{config.cmake_build_folder}/{mode}"
 
@@ -106,22 +102,24 @@ def get_toolset_cmake_exe_path(workspace_dir: str) -> str:
 def configure(
     config: CMakeConfig,
     mode: str, 
-    workspace_dir: str
+    workspace_dir: str,
+    ninja_exe: str | None
 ):
     log.info(f"Configuring project for '{mode}'")
-
     os.makedirs(config.cmake_build_folder, exist_ok=True)
     command = [
         config.cmake_exe,
         f"-B", get_config_files_path(config, mode),
         f"-S", config.cmake_list_dir,
-        f"-DCMAKE_BUILD_TYPE={mode.capitalize()}"
+        f"-DCMAKE_BUILD_TYPE={mode.capitalize()}",
+        f"-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(mode, workspace_dir, ninja_exe != None)}"
     ]
 
-    command.append(f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(mode, workspace_dir)}')
-
-    # if generator is not None:
-    #     command.append(f"-G {generator}")
+    if ninja_exe != None:
+        command += [
+            f"-DCMAKE_GENERATOR=Ninja",
+            f"-DCMAKE_MAKE_PROGRAM={ninja_exe}",
+        ]
 
     commons.execute_process(command, config.cmake_build_folder)
 
@@ -132,11 +130,12 @@ def build_project(config: CMakeConfig, mode: str):
     command = [
         config.cmake_exe,
         "--build", ".",
-        "--config", mode.capitalize(),
+        "--config", mode.capitalize()
     ]
     commons.execute_process(command, get_config_files_path(config, mode))
 
 def delete_cache(config: CMakeConfig, mode: str):
     log.info(f"Deleting project cache for '{mode}'")
-    if os.path.exists(get_config_files_path(config, mode)):
-        shutil.rmtree(get_config_files_path(config, mode))
+    path = get_config_files_path(config, mode)
+    if os.path.exists(path):
+        shutil.rmtree(path)

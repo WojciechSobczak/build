@@ -53,7 +53,7 @@ def _vcpkg_2025_11_19_exec_download(workspace_dir: str) -> str:
 
     return exec_path
 
-def _vcpkg_2025_10_17_triplets_download(workspace_dir: str) -> str:
+def _vcpkg_2025_10_17_triplets_download(workspace_dir: str):
     link = f"https://github.com/microsoft/vcpkg/archive/refs/tags/2025.10.17.zip"
     archive_path = f'{workspace_dir}/vcpkg-triplets-2025.10.17.zip'
     extract_path = f'{workspace_dir}/vcpkg'

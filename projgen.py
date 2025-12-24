@@ -6,7 +6,6 @@ import commons
 import os
 import jinja2
 import xml
-from package_manager import PackageManager
 
 _BASE_PROJGEN_FILES_PATH = f"{os.path.dirname(os.path.realpath(__file__))}/projgen_files/"
 
@@ -104,7 +103,6 @@ def generate_clion_workspace(output_directory: str, workdir: str, workspace_dir_
     
 
 def generate_project(
-    package_manager: PackageManager, 
     conan_exe: str | None, 
     vcpkg_exe: str | None, 
     output_directory: str, 
