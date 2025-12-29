@@ -6,17 +6,25 @@
 # it as you like
 # HF
 
-import os
+#START: SCRIPT CONFIG AND SETUP
+import os, sys, subprocess, platform
 WORKSPACE_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/.workspace'
 PROJECT_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/'
-
-import sys
 sys.path.append(WORKSPACE_DIR)
+if not os.path.exists(f'{WORKSPACE_DIR}/build_tools/'): 
+    link = "https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py"
+    if platform.system() == "Windows": 
+        subprocess.run(args=f"powershell -command Invoke-WebRequest {link} -OutFile setup.py; python3 setup.py -w .workspace", cwd=PROJECT_DIR, shell=True)
+    if platform.system() == "Linux": 
+        subprocess.run(args=f"curl --output setup.py {link} && python3 setup.py -w .workspace", cwd=PROJECT_DIR, shell=True)
+#END: SCRIPT CONFIG AND SETUP
+
+
 import build_tools
 import argparse
 import shutil
 
-def setup_toolset() -> tuple[str, str, str | None, str | None]:
+def setup_toolset() -> tuple[str, str, str, str | None]:
     # If you want all tools to be downloaded, or some to be downloaded this is 
     # the fragment you want to mess with. It is default for this script
     if not build_tools.cmake.is_cmake_in_workspace_toolset(WORKSPACE_DIR):
@@ -51,11 +59,11 @@ def setup_toolset() -> tuple[str, str, str | None, str | None]:
     assert(conan_exe != None)
     assert(vcpkg_exe != None)
 
-    return (cmake_exe, conan_exe, ninja_exe, vcpkg_exe)
+    return (cmake_exe, conan_exe, vcpkg_exe, ninja_exe)
 
 def main():
     os.makedirs(WORKSPACE_DIR, exist_ok=True)
-    cmake_exe, conan_exe, ninja_exe, vcpkg_exe = setup_toolset()
+    cmake_exe, conan_exe, vcpkg_exe, ninja_exe = setup_toolset()
 
     parser = argparse.ArgumentParser(description="Wojciechs build utilities")
     parser.add_argument('-c', '--config', default=False, action='store_true', help="Build cmake config.")

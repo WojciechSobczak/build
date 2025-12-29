@@ -55,7 +55,7 @@ def setup_build_tools(workspace_folder: str, workspace_name: str, working_dir: s
 
 def main():
     parser = argparse.ArgumentParser(description="Wojciechs C++ project setup")
-    parser.add_argument('-g', '--generate-project', default=True, action='store_true', help="Generate basic project.")
+    parser.add_argument('-g', '--generate-project', default=False, action='store_true', help="Generate basic project.")
     parser.add_argument('-w', '--workspace-name', default=".workspace", help="Crated workspace path")
     args = parser.parse_args()
 

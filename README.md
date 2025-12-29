@@ -26,7 +26,7 @@ After running it and after it ends its doings, you can safely delete it, as it w
 
 ### Command line of `setup.py`
 `setup.py` has some arguments that you can customize your project creation with.
-- `-g` or `--generate-project` - which tells it if it has to copy and paste initial. It is `True` by default.
+- `-g` or `--generate-project` - which tells it if it has to copy and paste initial. It is `False` by default.
 project files
 - `-w` or `--workspace-name` - which tells it how the project workspace folder has to be named. It will be placed 
 inside the directory where script were downloaded. It is `.workspace` by default.
@@ -63,6 +63,8 @@ As I mentioned before, this file is a playground. Is commented for you to see ho
 - `vcpkg`
   
 It will download it to the workspace directory and use it without need of having them installed before. If you have them installed, `build.py` have the option to use it, find it, uncomment it, and use it. All dependencies are installed locally inside workspace directory as well. It is by design, I like it, it won't change.
+
+`build.py` will at the beginning check if build tools are present in workspace directory, so once performed, there is no need to repeat the procedure of setup.
 
 
 ## License
