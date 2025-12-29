@@ -12,6 +12,8 @@ WORKSPACE_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/.workspace'
 PROJECT_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/'
 sys.path.append(WORKSPACE_DIR)
 if not os.path.exists(f'{WORKSPACE_DIR}/build_tools/'): 
+    # If you'd like very specific commit just change it to the commit of your choice
+    # link = https://github.com/WojciechSobczak/build/blob/4353e26a6f39a16d4c294d3a10adbead58d955fd/setup.py
     link = "https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py"
     if platform.system() == "Windows": 
         subprocess.run(args=f"powershell -command Invoke-WebRequest {link} -OutFile setup.py; python3 setup.py -w .workspace", cwd=PROJECT_DIR, shell=True)

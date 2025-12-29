@@ -5,7 +5,12 @@ Goal of if it is to create 'just works' conan based project creation and buildin
 It contains all libraries that I consider most useful and `rapidjson` to be sure that vcpkg is working. This list of libraries will evolve so don't hesitate to remove everything you don't need before running the dependencies downloading process.
 
 ## Prerequisites
-For everything to work you have to have `python3` installed, as every script in this repo is made in python. No additional libraries required. Only python standard library. This project is tested on Windows 11 and WSL within it. It isn't complicated, so it should work on 10 and native linuxes, but there is no guarantee. If there would be problems, let me know via github issues, I'll probably try to resolve it somehow.  
+For everything to work you have to have `python3` installed, as every script in this repo is made in python. No additional libraries required. Only python standard library. This project is tested on Windows 11 and WSL within it. It isn't complicated, so it should work on 10 and native linuxes, but there is no guarantee. If there would be problems, let me know via github issues, I'll probably try to resolve it somehow. 
+
+As this tool doesn't provide any compilers and c++ build tools beside ninja and cmake, you have to have some compiler installed.
+For windows the easiest option is to install Visual Studio and it will add everything to your environment. If you want something else, you have to setup it yourself.
+At some point I'll add compilers and build tools to make the process easier and more portable.
+For linux of course, as on windows, some compiler needs to be setup for cmake to find it.
 
 ## Tutorial
 To start a project you have to somehow get `setup.py` file and run it with `python3` wherever you want to create your project. You can download it via github manually or use some kind of downloader to get it. This is entirely up to you. You have to just get it and run it. 
