@@ -37,6 +37,10 @@ project files
 inside the directory where script were downloaded. It is `.workspace` by default.
 
 ### Usage Examples
+Note: I highly recommend using releases `setup.py` links as they have their commit hash embedded in them, so every recreation of build_tools
+files if needed, will be created from very specific version that you started working with and works.
+
+
 On windows if you have `powershell` you can use following command:
 - `Invoke-WebRequest https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py -OutFile setup.py; python3 setup.py;`
 

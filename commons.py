@@ -28,15 +28,21 @@ def execute_command(command: str, cwd: str, env = None):
         log.info(f"Command {command} failed with code: {process.returncode}")
         exit(process.returncode)
     
-def execute_process(command: list[str], cwd: str, env = None):
+def execute_process(command: list[str], cwd: str, env = None, return_stdout: bool = False) -> str | None:
     if cwd is None:
         raise Exception("'cwd' must be set")
     cwd = realpath(cwd)
     log.info(f"Executing: {' '.join(command)} | CWD: {cwd}")
-    process = subprocess.run(args=command, cwd = cwd, env=env)
+    process = subprocess.run(args=command, cwd = cwd, env=env, stdout=subprocess.PIPE if return_stdout else None)
     if process.returncode != 0:
         log.info(f"Command {' '.join(command)} failed with code: {process.returncode}")
         exit(process.returncode)
+    if return_stdout == False:
+        return None
+    if process.stdout == None:
+        return ""
+    return process.stdout.decode("utf-8")
+
 
 def delete_dir(dir_path: str):
     if os.path.isdir(dir_path) == False:
