@@ -39,6 +39,8 @@ def setup_toolset() -> tuple[str, str, str, str | None]:
     # BE AWARE: With ninja and mscompiler you have to run "vcvarsall.bat x64" before 
     # running the script or have cl.exe and stuff accessible in path
     # as it requires additional setup, it is disabled by default
+    # Also is you enable it after dependencies setup, you have to rerun dependencies
+    # setup as conan and cmake has problems with multiple generators used
     if False and not build_tools.ninja.is_ninja_in_workspace_toolset(WORKSPACE_DIR):
         build_tools.ninja.download_ninja(WORKSPACE_DIR)
         
