@@ -58,46 +58,46 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
     system_string = "windows" if commons.is_windows() else "linux"
     archive_ext = "zip" if commons.is_windows() else "tar.gz"
 
-    link = f"https://github.com/Kitware/CMake/releases/download/v4.2.0/cmake-4.2.0-{system_string}-x86_64.{archive_ext}"
-    
-    extract_path = f'{workspace_dir}/cmake'
-    extracted_path = f'{workspace_dir}/cmake/cmake-4.2.0-{system_string}-x86_64'
-    unified_extracted_path = f'{extract_path}/cmake-4.2.0'
-    archive_path = f'{workspace_dir}/cmake-4.2.0.{archive_ext}'
+    download_link = f"https://github.com/Kitware/CMake/releases/download/v4.2.0/cmake-4.2.0-{system_string}-x86_64.{archive_ext}"
+    cmake_main_dir = f'{workspace_dir}/cmake'
+    unpacked_archive_dir_path = f'{cmake_main_dir}/cmake-4.2.0-{system_string}-x86_64'
+    renamed_archive_dir_name = f'cmake-4.2.0'
+    renamed_archive_dir_path = f'{cmake_main_dir}/{renamed_archive_dir_name}'
+    downloaded_archive_path = f'{workspace_dir}/cmake-4.2.0.{archive_ext}'
 
-    if os.path.exists(unified_extracted_path):
+    if os.path.exists(renamed_archive_dir_path):
         log.info("Previous cmake download exists. Deleting...")
-        commons.delete_dir(unified_extracted_path)
+        commons.delete_dir(renamed_archive_dir_path)
 
     log.info("Downloading cmake executable...")
-    urllib.request.urlretrieve(link, archive_path)
+    urllib.request.urlretrieve(download_link, downloaded_archive_path)
     log.info("CMake downloaded.")
 
     log.info("Unpacking cmake executable (it can take a minute)...")
     if commons.is_windows():
-        with zipfile.ZipFile(archive_path, 'r') as zip_file:
-            zip_file.extractall(extract_path)
+        with zipfile.ZipFile(downloaded_archive_path, 'r') as zip_file:
+            zip_file.extractall(cmake_main_dir)
     else:
         # Tarfile on linux is horribly slow, so to speed things up
         # i try to use native tar
-        os.makedirs(extract_path, exist_ok=True)
+        os.makedirs(cmake_main_dir, exist_ok=True)
         log.info("Trying with native tar...")
         if shutil.which("tar") != None:
             log.info("tar found. Using tar...")
-            commons.execute_command(f"tar -xvzf {archive_path} -C {extract_path}", cwd=extract_path)
+            commons.execute_command(f"tar -xvzf {downloaded_archive_path} -C {cmake_main_dir}", cwd=cmake_main_dir)
         else:
             log.info("tar not found. Using python tarfile...")
-            with tarfile.open(archive_path, 'r:gz') as tar_file:
-                tar_file.extractall(extract_path)
+            with tarfile.open(downloaded_archive_path, 'r:gz') as tar_file:
+                tar_file.extractall(cmake_main_dir)
     log.info("Unpacked cmake folder.")
 
 
     log.info("Renaming cmake unpacked folder...")
-    commons.rename_dir(extracted_path, unified_extracted_path)
+    commons.rename_dir(unpacked_archive_dir_path, renamed_archive_dir_name)
     log.info("Renamed cmake folder.")
 
     exe_ext = ".exe" if commons.is_windows() else ""
-    return f'{unified_extracted_path}/bin/cmake{exe_ext}'
+    return f'{renamed_archive_dir_path}/bin/cmake{exe_ext}'
 
 def get_config_files_path(config: CMakeConfig) -> str:
     return f"{config.cmake_build_folder}/{config.cmake_build_mode}"

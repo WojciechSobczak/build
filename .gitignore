@@ -2,7 +2,7 @@ test/
 .vscode
 __pycache__
 .mypy_cache
-test.bsh
+test.sh
 test.bat
 .pytest_cache
 tests
