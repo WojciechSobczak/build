@@ -3,11 +3,11 @@ import datetime
 def _now_str() -> str:
     return datetime.datetime.now().isoformat(sep=" ", timespec='milliseconds')
 
-def error(str: str):
-    print(f"[BUILDTOOLS][{_now_str()}][ERROR] {str}")
+def error(msg: str):
+    print(f"[BUILDTOOLS][{_now_str()}][ERROR] {msg}")
 
-def info(str: str):
-    print(f"[BUILDTOOLS][{_now_str()}][INFO] {str}")
+def info(msg: str):
+    print(f"[BUILDTOOLS][{_now_str()}][INFO] {msg}")
 
-def warn(str: str):
-    print(f"[BUILDTOOLS][{_now_str()}][WARNING] {str}")
+def warn(msg: str):
+    print(f"[BUILDTOOLS][{_now_str()}][WARNING] {msg}")

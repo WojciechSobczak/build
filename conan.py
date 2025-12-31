@@ -71,13 +71,13 @@ def _get_conan_profiles_path(workspace_dir: str) -> str:
 def _get_conan_dependencies_path(workspace_dir: str) -> str:
     return f'{_get_conan_home(workspace_dir)}/dependencies'
 
-def _execute_command(command: str, project_dir: str, workspace_dir: str, ninja_exe: str | None = None):
+def _execute_process(command: list[str], project_dir: str, workspace_dir: str, ninja_exe: str | None = None):
     env = os.environ.copy()
     env['CONAN_HOME'] = _get_conan_home(workspace_dir)
     if ninja_exe != None:
         # Value of type variable "AnyOrLiteralStr" of "dirname" cannot be "str | None". REASON: But it can actually.
         env['PATH'] = os.path.dirname(ninja_exe) + os.pathsep + env['PATH'] # type: ignore
-    commons.execute_command(command, project_dir, env)
+    commons.execute_process(command, project_dir, env)
 
 def download_conan(workspace_dir: str) -> str:
     return _conan_2_23_0_download(workspace_dir)
@@ -98,7 +98,7 @@ def get_toolchain_filepath(mode: str, workspace_dir: str, ninja_generator: bool 
     return f'{file_path}/generators/conan_toolchain.cmake'
 
 def create_profiles(conan_executable: str, cmake_executable: str, project_dir: str, workspace_dir: str, ninja_generator: bool):
-    _execute_command(f"{conan_executable} profile detect --force", project_dir, workspace_dir)
+    _execute_process([f"{conan_executable}", "profile", "detect", "--force"], project_dir, workspace_dir)
 
     conan_profiles_path = _get_conan_profiles_path(workspace_dir)
     config = configparser.ConfigParser()
@@ -120,11 +120,11 @@ def create_profiles(conan_executable: str, cmake_executable: str, project_dir: s
         config.write(file)
 
 def download_dependencies(conan_executable: str, mode: str, project_dir: str, workspace_dir: str, ninja_exe: str | None = None):
-    _execute_command(' '.join([
+    _execute_process([
         conan_executable,
-        'install',
-        '.',
-        '--build=missing',
-        f'--profile={mode.lower()}',
-        f'--output-folder={_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}'
-    ]), project_dir, workspace_dir, ninja_exe)
+        f'install',
+        f'.',
+        f'--build', 'missing',
+        f'--profile', mode.lower(),
+        f'--output-folder', f'{_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}',
+    ], project_dir, workspace_dir, ninja_exe)

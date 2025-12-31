@@ -20,9 +20,10 @@ if not os.path.exists(f'{WORKSPACE_DIR}/build_tools/'):
 #END: SCRIPT CONFIG AND SETUP
 
 
-import build_tools
-import argparse
 import shutil
+import argparse
+import build_tools
+
 
 def setup_toolset() -> tuple[str, str, str, str | None]:
     # If you want all tools to be downloaded, or some to be downloaded this is 
@@ -67,7 +68,7 @@ def main():
     os.makedirs(WORKSPACE_DIR, exist_ok=True)
     cmake_exe, conan_exe, vcpkg_exe, ninja_exe = setup_toolset()
 
-    parser = argparse.ArgumentParser(description="Wojciechs build utilities")
+    parser = argparse.ArgumentParser(description="Wojciech's build utilities")
     parser.add_argument('-c', '--config', default=False, action='store_true', help="Build cmake config.")
     parser.add_argument('-b', '--build', default=False, action='store_true', help="CMake build.")
     parser.add_argument('-r', '--rebuild', default=False, action='store_true', help="CMake delete cache and rebuild.")
