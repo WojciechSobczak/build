@@ -132,7 +132,7 @@ def configure(
 
     if vcpkg_dependencies != None and len(vcpkg_dependencies) > 0:
         command += [
-            f'-DCMAKE_PREFIX_PATH={os.pathsep.join(vcpkg_dependencies)}'
+            f'-DCMAKE_PREFIX_PATH={';'.join(vcpkg_dependencies)}'
         ]
 
     if ninja_exe != None:

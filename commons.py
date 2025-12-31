@@ -25,7 +25,7 @@ def execute_command(command: str, cwd: str, env = None):
     log.info(f"Executing: {command} | CWD: {cwd}")
     process = subprocess.run(args=command, cwd = cwd, shell=True, env=env)
     if process.returncode != 0:
-        log.info(f"Command {command} failed with code: {process.returncode}")
+        log.info(f"Command: {command} failed with code: {process.returncode}")
         exit(process.returncode)
     
 def execute_process(command: list[str], cwd: str, env = None, return_stdout: bool = False) -> str | None:
@@ -35,7 +35,7 @@ def execute_process(command: list[str], cwd: str, env = None, return_stdout: boo
     log.info(f"Executing: {' '.join(command)} | CWD: {cwd}")
     process = subprocess.run(args=command, cwd = cwd, env=env, stdout=subprocess.PIPE if return_stdout else None)
     if process.returncode != 0:
-        log.info(f"Command {' '.join(command)} failed with code: {process.returncode}")
+        log.info(f"Command: {' '.join(command)} failed with code: {process.returncode}")
         exit(process.returncode)
     if return_stdout == False:
         return None

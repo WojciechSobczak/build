@@ -1,4 +1,5 @@
 import platform
+import typing
 import zipfile
 import os
 import shutil
@@ -12,19 +13,18 @@ from . import log
 vcpkg default structure for this configuration looks like this:
 
 For 2025.11.19
-WINDOWS:
-    WORKSPACE_DIR/vcpkg:
-        - vcpkg.exe
-        - vcpkg-triplets
-            - <github repo>
-        - dependencies
-LINUX:
-    WORKSPACE_DIR/vcpkg:
-        - vcpkg
-        - vcpkg-triplets
-            - <github repo>
-        - dependencies
+WORKSPACE_DIR/vcpkg:
+    - vcpkg.exe/elf
+    - vcpkg-triplets
+        - <github repo>
+    - buildtrees
+    - install
+    - packages
 """
+
+def _log_error_and_throw(msg: str) -> typing.NoReturn:
+    log.error(msg)
+    raise Exception(msg)
 
 def _vcpkg_2025_11_19_get_exec_path(workspace_dir: str) -> str:
     exe_ext = ".exe" if commons.is_windows() else ""
@@ -77,6 +77,21 @@ def _vcpkg_2025_10_17_triplets_download(workspace_dir: str):
     commons.rename_dir(extracted_path, renamed_dir_name)
     log.info("Renamed vcpkg unpacked triples folder.")
 
+def _get_triplets_path(workspace_dir: str) -> str:
+    return _vcpkg_2025_10_17_get_triplets_path(workspace_dir)
+
+def _get_buildtrees_dir(workspace_dir: str) -> str:
+    return f'{workspace_dir}/vcpkg/buildtrees/'
+
+def _get_packages_dir(workspace_dir: str) -> str:
+    return f'{workspace_dir}/vcpkg/packages/'
+
+def _get_install_dir(workspace_dir: str) -> str:
+    return f'{workspace_dir}/vcpkg/install/'
+
+def _get_cmake_configs_dir(workspace_dir: str) -> str:
+    return f'{_get_install_dir(workspace_dir)}/x64-{platform.system().lower()}/share/'
+
 def is_vcpkg_systemwide_installed() -> bool:
     return shutil.which("vcpkg") != None
 
@@ -87,12 +102,6 @@ def is_vcpkg_in_workspace_toolset(workspace_dir: str) -> bool:
 
 def get_toolset_vcpkg_exe_path(workspace_dir: str) -> str:
     return _vcpkg_2025_11_19_get_exec_path(workspace_dir)
-
-def get_triplets_path(workspace_dir: str) -> str:
-    return _vcpkg_2025_10_17_get_triplets_path(workspace_dir)
-
-def get_vcpkg_dependencies_dir(workspace_dir: str) -> str:
-    return f'{workspace_dir}/vcpkg/dependencies'
 
 def download_vcpkg(workspace_dir: str):
     _vcpkg_2025_10_17_triplets_download(workspace_dir)
@@ -106,51 +115,43 @@ def try_to_find_dependencies(workspace_dir: str, project_dir: str) -> list[str]:
 
     json_deps_array: list[dict] = deps_json['dependencies']
     if type(json_deps_array) != list:
-        msg = "vcpkg.json have invalid format. 'dependencies' must be an list of dicts"
-        log.error(msg)
-        raise Exception(msg)
+        _log_error_and_throw("vcpkg.json have invalid format. 'dependencies' must be an list of dicts")
     
     deps_to_look_for: set[str] = set()
     for json_dep in json_deps_array:
         if type(json_dep) != dict:
-            msg = "vcpkg.json have invalid format. 'dependencies' must be an list of dicts"
-            log.error(msg)
-            raise Exception(msg)
-
+            _log_error_and_throw("vcpkg.json have invalid format. 'dependencies' must be an list of dicts")
         json_dep_name = json_dep['name']
         if json_dep_name == None:
-            msg = "vcpkg.json have invalid format. 'dependencies/name' must be present and type str"
-            log.error(msg)
-            raise Exception(msg)
+            _log_error_and_throw("vcpkg.json have invalid format. 'dependencies/name' must be present and type str")
         deps_to_look_for.add(json_dep_name)
 
-    vcpkg_deps_dir = get_vcpkg_dependencies_dir(workspace_dir)
-
-    config_suffix = "config.cmake"
+    vcpkg_deps_dir = _get_cmake_configs_dir(workspace_dir)
     def _find_deps():
         deps_found: set[str] = set()
-        for directory, directory_names, file_names in os.walk(vcpkg_deps_dir):
-            for file_name in file_names:
-                low_file_name = file_name.lower()
-                lib_name = low_file_name[0:-len(config_suffix)]
-                if low_file_name.endswith(config_suffix) and lib_name in deps_to_look_for:
-                    deps_to_look_for.remove(lib_name)
-                    deps_found.add(commons.realpath(directory))
-                    if len(deps_to_look_for) == 0:
-                        return deps_found
+        for dependency_folder in os.listdir(vcpkg_deps_dir):
+            if dependency_folder in deps_to_look_for:
+                deps_found.add(commons.realpath(f"{vcpkg_deps_dir}/{dependency_folder}/"))
+                deps_to_look_for.remove(dependency_folder)
         return deps_found
     return list(_find_deps())
 
 
 def download_dependencies(vcpkg_executable: str, workspace_dir: str, project_dir: str):
-    os.makedirs(get_vcpkg_dependencies_dir(workspace_dir), exist_ok=True)
+    os.makedirs(_get_install_dir(workspace_dir), exist_ok=True)
+    os.makedirs(_get_buildtrees_dir(workspace_dir), exist_ok=True)
+    os.makedirs(_get_packages_dir(workspace_dir), exist_ok=True)
 
     env = os.environ.copy()
-    env['VCPKG_ROOT'] = get_triplets_path(workspace_dir)
+    env['VCPKG_ROOT'] = _get_triplets_path(workspace_dir)
 
     commons.execute_process([
         vcpkg_executable, "install", 
-        "--x-install-root", get_vcpkg_dependencies_dir(workspace_dir),
-        "--x-buildtrees-root", get_vcpkg_dependencies_dir(workspace_dir),
-        "--x-packages-root", get_vcpkg_dependencies_dir(workspace_dir),
+        "--x-install-root", _get_install_dir(workspace_dir),
+        "--x-buildtrees-root", _get_buildtrees_dir(workspace_dir),
+        "--x-packages-root", _get_packages_dir(workspace_dir),
+        "--clean-downloads-after-build",
+        "--clean-buildtrees-after-build",
+        "--clean-after-build",
+        "--clean-packages-after-build"
     ], project_dir, env)
