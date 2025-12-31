@@ -1,7 +1,6 @@
 [requires]
-fmt/11.1.4
-ctre/3.9.0
-asio/1.32.0
+fmt/12.1.0
+ctre/3.10.0
 nlohmann_json/3.11.3
 
 [generators]

@@ -12,7 +12,6 @@ endif()
 
 find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(asio REQUIRED)
 find_package(ctre CONFIG REQUIRED)
 find_package(RapidJSON REQUIRED)
 
@@ -24,5 +23,4 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE ctre::ctre)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(${PROJECT_NAME} PRIVATE asio::asio)
 target_link_libraries(${PROJECT_NAME} PRIVATE RapidJSON rapidjson)

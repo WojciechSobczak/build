@@ -22,9 +22,9 @@ WORKSPACE_DIR/vcpkg:
     - packages
 """
 
-def _log_error_and_throw(msg: str) -> typing.NoReturn:
+def _error_log_and_die(msg: str) -> typing.NoReturn:
     log.error(msg)
-    raise Exception(msg)
+    exit(-1)
 
 def _vcpkg_2025_11_19_get_exec_path(workspace_dir: str) -> str:
     exe_ext = ".exe" if commons.is_windows() else ""
@@ -115,15 +115,15 @@ def try_to_find_dependencies(workspace_dir: str, project_dir: str) -> list[str]:
 
     json_deps_array: list[dict] = deps_json['dependencies']
     if type(json_deps_array) != list:
-        _log_error_and_throw("vcpkg.json have invalid format. 'dependencies' must be an list of dicts")
+        _error_log_and_die("vcpkg.json have invalid format. 'dependencies' must be an list of dicts")
     
     deps_to_look_for: set[str] = set()
     for json_dep in json_deps_array:
         if type(json_dep) != dict:
-            _log_error_and_throw("vcpkg.json have invalid format. 'dependencies' must be an list of dicts")
+            _error_log_and_die("vcpkg.json have invalid format. 'dependencies' must be an list of dicts")
         json_dep_name = json_dep['name']
         if json_dep_name == None:
-            _log_error_and_throw("vcpkg.json have invalid format. 'dependencies/name' must be present and type str")
+            _error_log_and_die("vcpkg.json have invalid format. 'dependencies/name' must be present and type str")
         deps_to_look_for.add(json_dep_name)
 
     vcpkg_deps_dir = _get_cmake_configs_dir(workspace_dir)

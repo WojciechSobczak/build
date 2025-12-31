@@ -1,11 +1,7 @@
-test/
-.vscode
 __pycache__
-.mypy_cache
-test.sh
-test.bat
 .pytest_cache
-tests
-.workspace
-test_setup.py
+.mypy_cache
+.vscode
+
 releases
+tests
