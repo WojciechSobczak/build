@@ -64,6 +64,7 @@ There are options listed inside it and they will change as additions will be int
 - `-r` or `--rebuild` - delete `cmake` cache and run `cmake` build (default = `False`)
 - `-m` or `--mode` - set `cmake` build type. You can set whatever, string will be passed around and if some tool won't recognize it, it will just fail. (default=`debug`)
 - `-d` or `--dependencies` - downloads dependencies from conan and vcpkg if present. It setups conan profiles as well. (default = `False`)
+- `--clion` - creates CLion default CMake configurations (as XML files; Debug, Release; in `.idea` folder) for the project with all CMake paths, generators and variables set. Additionaly it adds some dictionary to remove spell checking errors for some words that are used in templates. It's made to easy run the project on CLion IDE with no mouse clicking if possible. Be aware that cmake executable cannot be set, so it's the only thing you'll have to click by yourself. Warning will be displayed. (default = `False`)
 
 As I mentioned before, this file is a playground. Is commented for you to see how to customize it for your needs. Change it, ruin it, modify it. It is supposed to be created once and be used for entirety of the lifetime of the project. For now it is able to download and use:
 - `conan` 
