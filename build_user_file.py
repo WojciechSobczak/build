@@ -73,6 +73,7 @@ def main():
     parser.add_argument('-r', '--rebuild', default=False, action='store_true', help="CMake delete cache and rebuild.")
     parser.add_argument('-m', '--mode', default="debug", help="Build mode. [debug, release, ...]")
     parser.add_argument('-d', '--dependencies', default=False, action='store_true', help="Download dependencies")
+    parser.add_argument('--clion', default=False, action='store_true', help="Create CLion configurations for the project")
     args = parser.parse_args()
     
     if args.dependencies:
@@ -101,6 +102,10 @@ def main():
 
     if args.build or args.rebuild:
         build_tools.cmake.build_project(cmake_config)
+
+    if args.clion:
+        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(WORKSPACE_DIR, PROJECT_DIR)
+        build_tools.clion.create_build_tools_configurations(WORKSPACE_DIR, PROJECT_DIR, ninja_exe, vcpkg_dependencies)
 
 if __name__ == "__main__":
     main()
