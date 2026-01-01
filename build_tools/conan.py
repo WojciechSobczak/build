@@ -93,7 +93,7 @@ def get_toolset_conan_exe_path(workspace_dir: str) -> str:
     return _conan_2_23_0_get_exec_path(workspace_dir)
 
 def get_toolchain_filepath(mode: str, workspace_dir: str, ninja_generator: bool = True) -> str:
-    file_path = f'{_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}/build/'
+    file_path = f'{_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}/build'
     if not commons.is_windows() or ninja_generator:
         file_path += f'{mode.capitalize()}/'
     return f'{file_path}/generators/conan_toolchain.cmake'

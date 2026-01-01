@@ -8,10 +8,10 @@
 
 #START: SCRIPT CONFIG AND SETUP
 import os, sys, subprocess, platform
-WORKSPACE_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/.workspace'
-PROJECT_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/'
+WORKSPACE_DIR = os.path.normpath(f'{os.path.dirname(os.path.realpath(__file__))}/.workspace').replace('\\', '/')
+PROJECT_DIR = os.path.normpath(f'{os.path.dirname(os.path.realpath(__file__))}/').replace('\\', '/')
 if not os.path.exists(f'{WORKSPACE_DIR}/build_tools/'): 
-    link = "https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py"
+    link = "https://github.com/WojciechSobczak/build/archive/refs/heads/master.zip"
     if platform.system() == "Windows": 
         subprocess.run(args=f"powershell -command Invoke-WebRequest {link} -OutFile setup.py; python3 setup.py -w .workspace", cwd=PROJECT_DIR, shell=True)
     if platform.system() == "Linux": 
@@ -76,7 +76,7 @@ def main():
     args = parser.parse_args()
 
     toolset_config = setup_toolset(args)
-    cmake_config = build_tools.cmake.CMakeConfig(
+    cmake_config = build_tools.cmake.Config(
         build_dir = f'{toolset_config.workspace_dir}/cmake/build',
         list_dir = f'{toolset_config.project_dir}',
         build_type = args.mode,
@@ -102,7 +102,7 @@ def main():
         build_tools.cmake.build_project(cmake_config, toolset_config)
 
     if args.clion:
-        build_tools.clion.create_build_tools_configurations(toolset_config, vcpkg_dependencies)
+        build_tools.clion.create_build_tools_configurations(cmake_config, toolset_config, vcpkg_dependencies)
 
 if __name__ == "__main__":
     main()
