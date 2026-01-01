@@ -1,3 +1,4 @@
+import dataclasses
 import os
 import tarfile
 import urllib.request
@@ -25,7 +26,7 @@ WORKSPACE_DIR/cmake:
 """
 
 
-class CMakeConfig:
+class Config:
     def __init__(self, 
         list_dir: str,
         build_dir: str,
@@ -128,7 +129,7 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
     exe_ext = ".exe" if commons.is_windows() else ""
     return f'{renamed_archive_dir_path}/bin/cmake{exe_ext}'
 
-def get_config_files_path(config: CMakeConfig) -> str:
+def get_config_files_path(config: Config) -> str:
     return f"{config.build_dir}/{config.build_mode}"
 
 def download_cmake(workspace_dir: str) -> str:
@@ -143,43 +144,69 @@ def is_cmake_in_workspace_toolset(workspace_dir: str) -> bool:
 def get_toolset_cmake_exe_path(workspace_dir: str) -> str:
     return _cmake_4_2_0_get_exec_path(workspace_dir)
 
-def configure(
-    config: CMakeConfig,
+@dataclasses.dataclass(frozen=True)
+class ConfigureOptions:
+    direct_args: dict[str, str]
+    variables: dict[str, str]
+
+def generate_configure_options(
+    config: Config,
     toolset_config: config.BuildToolsConfig,
     vcpkg_dependencies: list[str] | None = None
-):
-    log.info(f"Configuring project for '{config.build_mode}'")
-    os.makedirs(config.build_dir, exist_ok=True)
-    command = [
-        toolset_config.cmake_exe,
-        f'-B', get_config_files_path(config),
-        f'-S', config.list_dir,
-        f'-DCMAKE_BUILD_TYPE={config.build_mode}'
-    ]
+) -> ConfigureOptions:
+    
+    cmake_direct_args: dict[str, str] = {
+        '-B': get_config_files_path(config),
+        '-S': config.list_dir,
+    }
+    cmake_variables: dict[str, str] = {
+        '-DCMAKE_BUILD_TYPE': config.build_mode
+    }
 
     if toolset_config.is_conan_set():
-        command += [
-            f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.build_mode, toolset_config.workspace_dir, toolset_config.is_ninja_set())}'
-        ]
+        cmake_variables.update({
+            '-DCMAKE_TOOLCHAIN_FILE': conan.get_toolchain_filepath(
+                config.build_mode, 
+                toolset_config.workspace_dir, 
+                toolset_config.is_ninja_set()
+            )
+        })
 
     prefix_paths = config.prefix_paths
     if toolset_config.is_vcpkg_set() and vcpkg_dependencies is not None and len(vcpkg_dependencies) > 0:
         prefix_paths += vcpkg_dependencies
     
     if len(prefix_paths) > 0:
-        command += [
-            f'-DCMAKE_PREFIX_PATH={';'.join(prefix_paths)}'
-        ]
+        cmake_variables.update({
+            '-DCMAKE_PREFIX_PATH': ';'.join(prefix_paths)
+        })
 
     if toolset_config.is_ninja_set():
-        command += [
-            f'-DCMAKE_GENERATOR=Ninja',
-            f'-DCMAKE_MAKE_PROGRAM={toolset_config.ninja_exe}',
-        ]
+        cmake_variables.update({
+            '-DCMAKE_GENERATOR': 'Ninja',
+            '-DCMAKE_MAKE_PROGRAM': f'{toolset_config.ninja_exe}',
+        })
 
+    print(cmake_variables)
+    return ConfigureOptions(cmake_direct_args, cmake_variables)
+
+def configure(
+    config: Config,
+    toolset_config: config.BuildToolsConfig,
+    vcpkg_dependencies: list[str] | None = None
+):
+    log.info(f"Configuring project for '{config.build_mode}'")
+    os.makedirs(config.build_dir, exist_ok=True)
+    command = [toolset_config.cmake_exe]
+
+    options = generate_configure_options(config, toolset_config, vcpkg_dependencies)
+    for key, value in options.direct_args.items():
+        command += [key, value]
+    for key, value in options.variables.items():
+        command += [f'{key}={value}']
     commons.execute_process(command, config.build_dir)
 
-def build_project(config: CMakeConfig, toolset_config: config.BuildToolsConfig):
+def build_project(config: Config, toolset_config: config.BuildToolsConfig):
     log.info(f"Building project for '{config.build_mode}'")
 
     os.makedirs(config.build_dir, exist_ok=True)
@@ -190,7 +217,7 @@ def build_project(config: CMakeConfig, toolset_config: config.BuildToolsConfig):
     ]
     commons.execute_process(command, get_config_files_path(config))
 
-def delete_cache(config: CMakeConfig):
+def delete_cache(config: Config):
     log.info(f"Deleting project cache for '{config.build_mode}'")
     path = get_config_files_path(config)
     if os.path.exists(path):
