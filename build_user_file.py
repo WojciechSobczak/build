@@ -79,7 +79,8 @@ def main():
     cmake_config = build_tools.cmake.CMakeConfig(
         build_dir = f'{toolset_config.workspace_dir}/cmake/build',
         list_dir = f'{toolset_config.project_dir}',
-        build_type = args.mode
+        build_type = args.mode,
+        prefix_paths = [] # If you want some, put some
     )
     
     if args.dependencies:
