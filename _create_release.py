@@ -1,11 +1,16 @@
-import os
-import subprocess
+import os, sys
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
+if "PYTHONPATH" not in os.environ: os.environ["PYTHONPATH"] = ""
+os.environ["PYTHONPATH"] = f'$PYTHONPATH{os.pathsep}{SCRIPT_DIR}'
+sys.path.append(SCRIPT_DIR)
+
+import build_tools
 
 def main():
     RELEASE_LINK = "https://github.com/WojciechSobczak/build/archive/{}.zip"
-    git_hash = subprocess.run(args=["git", "rev-parse", "HEAD"], cwd = SCRIPT_DIR, stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
+
+    git_hash = build_tools.commons.execute_process(["git", "rev-parse", "HEAD"], SCRIPT_DIR, return_stdout=True).strip()
 
     with open(f"{SCRIPT_DIR}/setup.py", "r", encoding="UTF-8") as file:
         text = file.read()
