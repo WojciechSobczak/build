@@ -10,19 +10,19 @@
 import os, sys, subprocess, platform
 WORKSPACE_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/.workspace'
 PROJECT_DIR = f'{os.path.dirname(os.path.realpath(__file__))}/'
-sys.path.append(WORKSPACE_DIR)
 if not os.path.exists(f'{WORKSPACE_DIR}/build_tools/'): 
     link = "https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py"
     if platform.system() == "Windows": 
         subprocess.run(args=f"powershell -command Invoke-WebRequest {link} -OutFile setup.py; python3 setup.py -w .workspace", cwd=PROJECT_DIR, shell=True)
     if platform.system() == "Linux": 
         subprocess.run(args=f"curl --output setup.py {link} && python3 setup.py -w .workspace", cwd=PROJECT_DIR, shell=True)
+sys.path.append(f'{WORKSPACE_DIR}/build_tools/')
 #END: SCRIPT CONFIG AND SETUP
 
 
 import shutil
 import argparse
-import build_tools
+import build_tools #type: ignore
 
 
 def setup_toolset() -> tuple[str, str, str, str | None]:

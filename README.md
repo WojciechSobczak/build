@@ -18,42 +18,43 @@ To start a project you have to somehow get `setup.py` file and run it with `pyth
 ### What does it do?
 `setup.py` is doing three things:
 - creating workspace folder for the project (default name for it is `.workspace`)
-- downloading build_tools project for everything to work 
+- downloading `build_tools` project for everything to work 
 - generating project files, which are:
   - `CMakeLists.txt` - cmake project file
   - `conanfile.txt` - conan dependencies file
   - `vcpkg.json` - vcpkg dependencies file
   - `src/main.cpp` - C++ code main file
   - `src/assembly.nasm` - additional, if you want, nasm assembly file
-  - `build.py` - build_tools build script for the project
+  - `build.py` - `build_tools` build script for the project
+  - `.env` - env file for vscode to have `PYTHONPATH` appended with `build_tools` code path for intellisense and else to work flawlessly
 
 After running it and after it ends its doings, you can safely delete it, as it won't be needed anymore. Everything you need, you got from now. 
 
 ### Command line of `setup.py`
 `setup.py` has some arguments that you can customize your project creation with.
-- `-g` or `--generate-project` - which tells it if it has to copy and paste initial. It is `False` by default.
+- `-g` or `--generate-project` - which tells it if it has to copy and paste initial. (default = `False`)
 project files
 - `-w` or `--workspace-name` - which tells it how the project workspace folder has to be named. It will be placed 
-inside the directory where script were downloaded. It is `.workspace` by default.
+inside the directory where script were downloaded. (deafult = `.workspace`)
+- `-o` or `--overwrite-files` - which tells it if during project generation it should just overwrite files that are already present or make suffixed named version of them for you to decide what to do with them (default = `False`).
 
 ### Usage Examples
-Note: I highly recommend using releases `setup.py` links as they have their commit hash embedded in them, so every recreation of build_tools
-files if needed, will be created from very specific version that you started working with and works.
-
-
 On windows if you have `powershell` you can use following command:
-- `Invoke-WebRequest https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py -OutFile setup.py; python3 setup.py;`
+```powershell 
+Invoke-WebRequest https://github.com/WojciechSobczak/build/releases/download/0.0.2/setup.py -OutFile setup.py; python3 setup.py;
+```
 
 Which will download the newest `setup.py` and execute it, creating new project. 
 
 If you are stuck to `cmd` or `bash` on linux you have to use whatever you have available. If you have `curl` you can use it like:
-
-`curl --output setup.py https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py && python3 setup.py`
+```bash
+curl --output setup.py https://github.com/WojciechSobczak/build/releases/download/0.0.2/setup.py && python3 setup.py
+```
 
 Or if you have `wget`:
-
-`wget https://raw.githubusercontent.com/WojciechSobczak/build/refs/heads/master/setup.py && python3 setup.py`
-
+```bash
+wget https://github.com/WojciechSobczak/build/releases/download/0.0.2/setup.py && python3 setup.py
+```
 
 ## `build.py`
 `build.py` is most important creation of this project as it is tool that will build stuff.  
