@@ -77,10 +77,9 @@ def main():
 
     toolset_config = setup_toolset(args)
     cmake_config = build_tools.cmake.CMakeConfig(
-        cmake_exe = toolset_config.cmake_exe,
-        cmake_build_folder = f'{toolset_config.workspace_dir}/cmake/build',
-        cmake_list_dir = f'{toolset_config.project_dir}',
-        cmake_build_type = args.mode
+        build_dir = f'{toolset_config.workspace_dir}/cmake/build',
+        list_dir = f'{toolset_config.project_dir}',
+        build_type = args.mode
     )
     
     if args.dependencies:
@@ -99,7 +98,7 @@ def main():
         build_tools.cmake.configure(cmake_config, toolset_config, vcpkg_dependencies)
 
     if args.build or args.rebuild:
-        build_tools.cmake.build_project(cmake_config)
+        build_tools.cmake.build_project(cmake_config, toolset_config)
 
     if args.clion:
         build_tools.clion.create_build_tools_configurations(toolset_config, vcpkg_dependencies)
