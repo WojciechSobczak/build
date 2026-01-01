@@ -22,16 +22,16 @@ def main():
             text[0:remove_start_pos],
             textwrap.indent(textwrap.dedent(f"""
                 def _test_copy_files():
-                    files = os.listdir("{SCRIPT_DIR}")
+                    files = os.listdir("{SCRIPT_DIR}/build_tools")
                     for file in files:
                         if file.endswith('.py'):
-                            shutil.copy(f'{SCRIPT_DIR}/{{file}}', f'{TEST_BUILD_TOOLS_DIR}/{{file}}')
+                            shutil.copy(f'{SCRIPT_DIR}/{{file}}', f'{TEST_BUILD_TOOLS_DIR}/build_tools/{{file}}')
                 _test_copy_files()
             """), "    "),
             text[remove_end_pos + 1:]
         ])
 
-        text = text.replace('projgen_files = f"{extract_path}/projgen_files"', f'projgen_files = f"{SCRIPT_DIR}/projgen_files"')
+        text = text.replace('projgen_files = f"{extract_path}/build_tools/projgen_files"', f'projgen_files = f"{SCRIPT_DIR}/build_tools/projgen_files"')
 
     os.makedirs(TEST_BUILD_TOOLS_DIR, exist_ok=True)
     with open(f"{TEST_BUILD_TOOLS_DIR}/setup.py", "w", encoding="UTF-8") as file:
