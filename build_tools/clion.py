@@ -6,6 +6,7 @@ import xml.etree.ElementTree
 from . import conan
 from . import log
 from . import commons
+from . import config
 
 def _error_log_and_die(msg: str) -> typing.NoReturn:
     log.error(msg)
@@ -13,15 +14,13 @@ def _error_log_and_die(msg: str) -> typing.NoReturn:
 
 
 def create_build_tools_configurations(
-    workspace_dir: str,
-    project_dir: str,
-    ninja_exe: str | None = None,
+    config: config.BuildToolsConfig,
     vcpkg_dependencies: list[str] | None = None
 ):
     log.info("Creating CLion Project XML File with CMake settings...")
-    _create_idea_project_xml(workspace_dir, project_dir, ninja_exe, vcpkg_dependencies)
+    _create_idea_project_xml(config.workspace_dir, config.project_dir, config.ninja_exe, vcpkg_dependencies)
     log.info("Creating CLion basic dictionary...")
-    _create_idea_dictionary_xml(project_dir)
+    _create_idea_dictionary_xml(config.project_dir)
     log.info("Creating CLion files finished successfully!")
 
 def _create_idea_project_xml(

@@ -74,38 +74,35 @@ def main():
     parser.add_argument('-d', '--dependencies', default=False, action='store_true', help="Download dependencies")
     parser.add_argument('--clion', default=False, action='store_true', help="Create CLion configurations for the project")
     args = parser.parse_args()
+
     toolset_config = setup_toolset(args)
+    cmake_config = build_tools.cmake.CMakeConfig(
+        cmake_exe = toolset_config.cmake_exe,
+        cmake_build_folder = f'{toolset_config.workspace_dir}/cmake/build',
+        cmake_list_dir = f'{toolset_config.project_dir}',
+        cmake_build_type = args.mode
+    )
     
     if args.dependencies:
         build_tools.conan.create_profiles(toolset_config)
         build_tools.conan.download_dependencies(toolset_config)
         build_tools.vcpkg.download_dependencies(toolset_config)
 
-    cmake_config = build_tools.cmake.CMakeConfig(
-        cmake_exe = toolset_config.cmake_exe,
-        cmake_build_folder = f'{WORKSPACE_DIR}/cmake/build',
-        cmake_list_dir = f'{PROJECT_DIR}',
-        cmake_build_type = args.mode
-    )
-        
+    vcpkg_dependencies: list[str] = []
+    if args.config or args.rebuild or args.clion:
+        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(toolset_config)
+
     if args.rebuild:
         build_tools.cmake.delete_cache(cmake_config)
-    
+
     if args.config or args.rebuild:
-        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(toolset_config)
-        build_tools.cmake.configure(
-            config = cmake_config,
-            workspace_dir = WORKSPACE_DIR,
-            ninja_exe = toolset_config.ninja_exe,
-            vcpkg_dependencies = vcpkg_dependencies
-        )
+        build_tools.cmake.configure(cmake_config, toolset_config, vcpkg_dependencies)
 
     if args.build or args.rebuild:
         build_tools.cmake.build_project(cmake_config)
 
     if args.clion:
-        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(toolset_config)
-        build_tools.clion.create_build_tools_configurations(WORKSPACE_DIR, PROJECT_DIR, toolset_config.ninja_exe, vcpkg_dependencies)
+        build_tools.clion.create_build_tools_configurations(toolset_config, vcpkg_dependencies)
 
 if __name__ == "__main__":
     main()
