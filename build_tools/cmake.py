@@ -8,6 +8,7 @@ import platform
 from . import commons
 from . import log
 from . import conan
+from . import config
 
 """
 CMake default structure for this configuration looks like this:
@@ -84,7 +85,7 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
         log.info("Trying with native tar...")
         if shutil.which("tar") is not None:
             log.info("tar found. Using tar...")
-            commons.execute_command(f"tar -xvzf {downloaded_archive_path} -C {cmake_main_dir}", cwd=cmake_main_dir)
+            commons.execute_command(f"tar -xvzf {downloaded_archive_path} -C {cmake_main_dir} > /dev/null", cwd=cmake_main_dir)
         else:
             log.info("tar not found. Using python tarfile...")
             with tarfile.open(downloaded_archive_path, 'r:gz') as tar_file:
@@ -116,8 +117,7 @@ def get_toolset_cmake_exe_path(workspace_dir: str) -> str:
 
 def configure(
     config: CMakeConfig,
-    workspace_dir: str,
-    ninja_exe: str | None = None,
+    toolset_config: config.BuildToolsConfig,
     vcpkg_dependencies: list[str] | None = None
 ):
     log.info(f"Configuring project for '{config.cmake_build_mode}'")
@@ -127,7 +127,7 @@ def configure(
         f'-B', get_config_files_path(config),
         f'-S', config.cmake_list_dir,
         f'-DCMAKE_BUILD_TYPE={config.cmake_build_mode}',
-        f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.cmake_build_mode, workspace_dir, ninja_exe is not None)}'
+        f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.cmake_build_mode, toolset_config.workspace_dir, toolset_config.is_ninja_set())}'
     ]
 
     if vcpkg_dependencies is not None and len(vcpkg_dependencies) > 0:
@@ -135,10 +135,10 @@ def configure(
             f'-DCMAKE_PREFIX_PATH={';'.join(vcpkg_dependencies)}'
         ]
 
-    if ninja_exe is not None:
+    if toolset_config.is_ninja_set():
         command += [
             f'-DCMAKE_GENERATOR=Ninja',
-            f'-DCMAKE_MAKE_PROGRAM={ninja_exe}',
+            f'-DCMAKE_MAKE_PROGRAM={toolset_config.ninja_exe}',
         ]
 
     commons.execute_process(command, config.cmake_build_folder)
