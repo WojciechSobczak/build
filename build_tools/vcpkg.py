@@ -8,6 +8,7 @@ import json
 
 from . import commons
 from . import log
+from . import config
 
 """
 vcpkg default structure for this configuration looks like this:
@@ -93,7 +94,7 @@ def _get_cmake_configs_dir(workspace_dir: str) -> str:
     return f'{_get_install_dir(workspace_dir)}/x64-{platform.system().lower()}/share/'
 
 def is_vcpkg_systemwide_installed() -> bool:
-    return shutil.which("vcpkg") != None
+    return shutil.which("vcpkg") is not None
 
 def is_vcpkg_in_workspace_toolset(workspace_dir: str) -> bool:
     exe_present = os.path.exists(_vcpkg_2025_11_19_get_exec_path(workspace_dir))
@@ -107,8 +108,8 @@ def download_vcpkg(workspace_dir: str):
     _vcpkg_2025_10_17_triplets_download(workspace_dir)
     return _vcpkg_2025_11_19_exec_download(workspace_dir)
 
-def try_to_find_dependencies(workspace_dir: str, project_dir: str) -> list[str]:
-    json_path = f'{project_dir}/vcpkg.json'
+def try_to_find_dependencies(config: config.BuildToolsConfig) -> list[str]:
+    json_path = f'{config.project_dir}/vcpkg.json'
     with open(json_path, "r", encoding="UTF-8") as file:
         json_string = file.read()
     deps_json = json.loads(json_string)
@@ -126,8 +127,8 @@ def try_to_find_dependencies(workspace_dir: str, project_dir: str) -> list[str]:
             _error_log_and_die("vcpkg.json have invalid format. 'dependencies/name' must be present and type str")
         deps_to_look_for.add(json_dep_name)
 
-    vcpkg_deps_dir = _get_cmake_configs_dir(workspace_dir)
-    def _find_deps():
+    vcpkg_deps_dir = _get_cmake_configs_dir(config.workspace_dir)
+    def _find_deps() -> set[str]:
         deps_found: set[str] = set()
         for dependency_folder in os.listdir(vcpkg_deps_dir):
             if dependency_folder in deps_to_look_for:
@@ -137,21 +138,23 @@ def try_to_find_dependencies(workspace_dir: str, project_dir: str) -> list[str]:
     return list(_find_deps())
 
 
-def download_dependencies(vcpkg_executable: str, workspace_dir: str, project_dir: str):
-    os.makedirs(_get_install_dir(workspace_dir), exist_ok=True)
-    os.makedirs(_get_buildtrees_dir(workspace_dir), exist_ok=True)
-    os.makedirs(_get_packages_dir(workspace_dir), exist_ok=True)
+def download_dependencies(config: config.BuildToolsConfig):
+    if config.vcpkg_exe is None: log.error("vcpkg.download_dependencies(): config.vcpkg_exe must be set"); exit(-1)
+
+    os.makedirs(_get_install_dir(config.workspace_dir), exist_ok=True)
+    os.makedirs(_get_buildtrees_dir(config.workspace_dir), exist_ok=True)
+    os.makedirs(_get_packages_dir(config.workspace_dir), exist_ok=True)
 
     env = os.environ.copy()
-    env['VCPKG_ROOT'] = _get_triplets_path(workspace_dir)
+    env['VCPKG_ROOT'] = _get_triplets_path(config.workspace_dir)
 
     commons.execute_process([
-        vcpkg_executable, "install", 
-        "--x-install-root", _get_install_dir(workspace_dir),
-        "--x-buildtrees-root", _get_buildtrees_dir(workspace_dir),
-        "--x-packages-root", _get_packages_dir(workspace_dir),
+        config.vcpkg_exe, "install", 
+        "--x-install-root", _get_install_dir(config.workspace_dir),
+        "--x-buildtrees-root", _get_buildtrees_dir(config.workspace_dir),
+        "--x-packages-root", _get_packages_dir(config.workspace_dir),
         "--clean-downloads-after-build",
         "--clean-buildtrees-after-build",
         "--clean-after-build",
         "--clean-packages-after-build"
-    ], project_dir, env)
+    ], config.project_dir, env)

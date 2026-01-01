@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
 
     tag_name: str = args.version
-    if tag_name == None:
+    if tag_name is None:
         with open(f'{SCRIPT_DIR}/version.txt', "r", encoding="UTF-8") as file:
             tag_name = file.read().strip()
     else:

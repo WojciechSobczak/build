@@ -24,8 +24,8 @@ import shutil
 import argparse
 import build_tools #type: ignore
 
-
-def setup_toolset() -> tuple[str, str, str, str | None]:
+def setup_toolset(args: argparse.Namespace) -> build_tools.BuildToolsConfig:
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
     # If you want all tools to be downloaded, or some to be downloaded this is 
     # the fragment you want to mess with. It is default for this script
     if not build_tools.cmake.is_cmake_in_workspace_toolset(WORKSPACE_DIR):
@@ -58,16 +58,14 @@ def setup_toolset() -> tuple[str, str, str, str | None]:
         conan_exe = shutil.which("conan")
         vcpkg_exe = shutil.which("vcpkg")
 
-    assert(cmake_exe != None)
-    assert(conan_exe != None)
-    assert(vcpkg_exe != None)
+    assert(cmake_exe is not None)
+    assert(conan_exe is not None)
+    assert(vcpkg_exe is not None)
+    assert(args.mode is not None)
 
-    return (cmake_exe, conan_exe, vcpkg_exe, ninja_exe)
+    return build_tools.BuildToolsConfig(cmake_exe, conan_exe, vcpkg_exe, ninja_exe, WORKSPACE_DIR, PROJECT_DIR, args.mode)
 
 def main():
-    os.makedirs(WORKSPACE_DIR, exist_ok=True)
-    cmake_exe, conan_exe, vcpkg_exe, ninja_exe = setup_toolset()
-
     parser = argparse.ArgumentParser(description="Wojciech's build utilities")
     parser.add_argument('-c', '--config', default=False, action='store_true', help="Build cmake config.")
     parser.add_argument('-b', '--build', default=False, action='store_true', help="CMake build.")
@@ -76,14 +74,15 @@ def main():
     parser.add_argument('-d', '--dependencies', default=False, action='store_true', help="Download dependencies")
     parser.add_argument('--clion', default=False, action='store_true', help="Create CLion configurations for the project")
     args = parser.parse_args()
+    toolset_config = setup_toolset(args)
     
     if args.dependencies:
-        build_tools.conan.create_profiles(conan_exe, cmake_exe, PROJECT_DIR, WORKSPACE_DIR, ninja_exe != None)
-        build_tools.conan.download_dependencies(conan_exe, args.mode, PROJECT_DIR, WORKSPACE_DIR, ninja_exe)
-        build_tools.vcpkg.download_dependencies(vcpkg_exe, WORKSPACE_DIR, PROJECT_DIR)
+        build_tools.conan.create_profiles(toolset_config)
+        build_tools.conan.download_dependencies(toolset_config)
+        build_tools.vcpkg.download_dependencies(toolset_config)
 
     cmake_config = build_tools.cmake.CMakeConfig(
-        cmake_exe = cmake_exe,
+        cmake_exe = toolset_config.cmake_exe,
         cmake_build_folder = f'{WORKSPACE_DIR}/cmake/build',
         cmake_list_dir = f'{PROJECT_DIR}',
         cmake_build_type = args.mode
@@ -93,11 +92,11 @@ def main():
         build_tools.cmake.delete_cache(cmake_config)
     
     if args.config or args.rebuild:
-        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(WORKSPACE_DIR, PROJECT_DIR)
+        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(toolset_config)
         build_tools.cmake.configure(
             config = cmake_config,
             workspace_dir = WORKSPACE_DIR,
-            ninja_exe = ninja_exe,
+            ninja_exe = toolset_config.ninja_exe,
             vcpkg_dependencies = vcpkg_dependencies
         )
 
@@ -105,8 +104,8 @@ def main():
         build_tools.cmake.build_project(cmake_config)
 
     if args.clion:
-        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(WORKSPACE_DIR, PROJECT_DIR)
-        build_tools.clion.create_build_tools_configurations(WORKSPACE_DIR, PROJECT_DIR, ninja_exe, vcpkg_dependencies)
+        vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(toolset_config)
+        build_tools.clion.create_build_tools_configurations(WORKSPACE_DIR, PROJECT_DIR, toolset_config.ninja_exe, vcpkg_dependencies)
 
 if __name__ == "__main__":
     main()

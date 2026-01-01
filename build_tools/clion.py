@@ -52,12 +52,12 @@ def _create_idea_project_xml(
 
 
     cmake_settings = project.find('./component[@name="CMakeSettings"]')
-    if cmake_settings == None:
+    if cmake_settings is None:
         cmake_settings = xml.etree.ElementTree.SubElement(project, 'component', {"name" : "CMakeSettings"})
 
     # Read all configurations
     configurations_element = cmake_settings.find('./configurations')
-    if configurations_element == None:
+    if configurations_element is None:
         configurations_element = xml.etree.ElementTree.SubElement(cmake_settings, 'configurations')
     # Save list of all of them
     configuration_list = configurations_element.findall('./configuration')
@@ -75,19 +75,19 @@ def _create_idea_project_xml(
 
     # Create all build_tools configs
     for mode in ["Debug", "Release"]:
-        toolchain_file = conan.get_toolchain_filepath(mode.capitalize(), workspace_dir, ninja_exe != None)
+        toolchain_file = conan.get_toolchain_filepath(mode.capitalize(), workspace_dir, ninja_exe is not None)
         toolchain_file = commons.normalize_path(toolchain_file)
         generation_options: list[str] = [
             f'-DCMAKE_TOOLCHAIN_FILE="{toolchain_file}"'
         ]
-        if vcpkg_dependencies != None:
+        if vcpkg_dependencies is not None:
             generation_options += [
                 f'-DCMAKE_PREFIX_PATH="{';'.join(vcpkg_dependencies)}"'
             ]
 
         toolchain_name = "Visual Studio" if commons.is_windows() else "Unix Makefiles"
         build_options = []
-        if ninja_exe != None:
+        if ninja_exe is not None:
             generation_options += [
                 f'-DCMAKE_GENERATOR=Ninja',
                 f'-DCMAKE_MAKE_PROGRAM="{ninja_exe}"'
@@ -141,11 +141,11 @@ def _create_idea_dictionary_xml(project_dir: str):
         return
     
     project_dictionary = project_dictionary_state.find('./dictionary[@name="project"]')
-    if project_dictionary == None:
+    if project_dictionary is None:
         project_dictionary = xml.etree.ElementTree.SubElement(project_dictionary_state, 'dictionary', attrib={'name' : "project"})
     
     project_dictionary_words = project_dictionary.find('./words')
-    if project_dictionary_words == None:
+    if project_dictionary_words is None:
         project_dictionary_words = xml.etree.ElementTree.SubElement(project_dictionary, 'words')
 
     for word_text in ["ctre"]:
