@@ -12,3 +12,10 @@ class BuildToolsConfig:
 
     def is_ninja_set(self) -> bool:
         return self.ninja_exe is not None
+    
+    def is_vcpkg_set(self) -> bool:
+        return self.vcpkg_exe is not None
+    
+    def is_conan_set(self) -> bool:
+        return self.conan_exe is not None
+    

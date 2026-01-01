@@ -27,24 +27,22 @@ WORKSPACE_DIR/cmake:
 
 class CMakeConfig:
     def __init__(self, 
-        cmake_exe: str,
-        cmake_list_dir: str,
-        cmake_build_folder: str,
-        cmake_build_type: str
+        list_dir: str,
+        build_dir: str,
+        build_type: str
     ):
-        self.cmake_exe = cmake_exe
-        self.cmake_list_dir = cmake_list_dir
-        self.cmake_build_folder = cmake_build_folder
+        self.list_dir = list_dir
+        self.build_dir = build_dir
         
         def _detect_mode() -> str:
-            match cmake_build_type.lower():
+            match build_type.lower():
                 case "debug": return "Debug"
                 case "release": return "Release"
                 case "relwithdebinfo": return "RelWithDebInfo" 
                 case "minsizerel": return "MinSizeRel"
-            log.info(f"Unusual cmake build type detected: '{cmake_build_type}'. Passing it trough as defined.")
-            return cmake_build_type
-        self.cmake_build_mode = _detect_mode()
+            log.info(f"Unusual cmake build type detected: '{build_type}'. Passing it trough as defined.")
+            return build_type
+        self.build_mode = _detect_mode()
 
 
 def _cmake_4_2_0_get_exec_path(workspace_dir: str) -> str:
@@ -101,7 +99,7 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
     return f'{renamed_archive_dir_path}/bin/cmake{exe_ext}'
 
 def get_config_files_path(config: CMakeConfig) -> str:
-    return f"{config.cmake_build_folder}/{config.cmake_build_mode}"
+    return f"{config.build_dir}/{config.build_mode}"
 
 def download_cmake(workspace_dir: str) -> str:
     return _cmake_4_2_0_download(workspace_dir)
@@ -120,17 +118,21 @@ def configure(
     toolset_config: config.BuildToolsConfig,
     vcpkg_dependencies: list[str] | None = None
 ):
-    log.info(f"Configuring project for '{config.cmake_build_mode}'")
-    os.makedirs(config.cmake_build_folder, exist_ok=True)
+    log.info(f"Configuring project for '{config.build_mode}'")
+    os.makedirs(config.build_dir, exist_ok=True)
     command = [
-        config.cmake_exe,
+        toolset_config.cmake_exe,
         f'-B', get_config_files_path(config),
-        f'-S', config.cmake_list_dir,
-        f'-DCMAKE_BUILD_TYPE={config.cmake_build_mode}',
-        f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.cmake_build_mode, toolset_config.workspace_dir, toolset_config.is_ninja_set())}'
+        f'-S', config.list_dir,
+        f'-DCMAKE_BUILD_TYPE={config.build_mode}'
     ]
 
-    if vcpkg_dependencies is not None and len(vcpkg_dependencies) > 0:
+    if toolset_config.is_conan_set():
+        command += [
+            f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.build_mode, toolset_config.workspace_dir, toolset_config.is_ninja_set())}'
+        ]
+
+    if toolset_config.is_vcpkg_set() and vcpkg_dependencies is not None and len(vcpkg_dependencies) > 0:
         command += [
             f'-DCMAKE_PREFIX_PATH={';'.join(vcpkg_dependencies)}'
         ]
@@ -141,21 +143,21 @@ def configure(
             f'-DCMAKE_MAKE_PROGRAM={toolset_config.ninja_exe}',
         ]
 
-    commons.execute_process(command, config.cmake_build_folder)
+    commons.execute_process(command, config.build_dir)
 
-def build_project(config: CMakeConfig):
-    log.info(f"Building project for '{config.cmake_build_mode}'")
+def build_project(config: CMakeConfig, toolset_config: config.BuildToolsConfig):
+    log.info(f"Building project for '{config.build_mode}'")
 
-    os.makedirs(config.cmake_build_folder, exist_ok=True)
+    os.makedirs(config.build_dir, exist_ok=True)
     command = [
-        config.cmake_exe,
+        toolset_config.cmake_exe,
         "--build", ".",
-        "--config", config.cmake_build_mode
+        "--config", config.build_mode
     ]
     commons.execute_process(command, get_config_files_path(config))
 
 def delete_cache(config: CMakeConfig):
-    log.info(f"Deleting project cache for '{config.cmake_build_mode}'")
+    log.info(f"Deleting project cache for '{config.build_mode}'")
     path = get_config_files_path(config)
     if os.path.exists(path):
         commons.delete_dir(path)
