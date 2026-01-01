@@ -29,10 +29,12 @@ class CMakeConfig:
     def __init__(self, 
         list_dir: str,
         build_dir: str,
-        build_type: str
+        build_type: str,
+        prefix_paths: list[str] | None = None
     ):
         self.list_dir = list_dir
         self.build_dir = build_dir
+        self.prefix_paths = [] if prefix_paths is None else prefix_paths
         
         def _detect_mode() -> str:
             match build_type.lower():
@@ -160,9 +162,13 @@ def configure(
             f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.build_mode, toolset_config.workspace_dir, toolset_config.is_ninja_set())}'
         ]
 
+    prefix_paths = config.prefix_paths
     if toolset_config.is_vcpkg_set() and vcpkg_dependencies is not None and len(vcpkg_dependencies) > 0:
+        prefix_paths += vcpkg_dependencies
+    
+    if len(prefix_paths) > 0:
         command += [
-            f'-DCMAKE_PREFIX_PATH={';'.join(vcpkg_dependencies)}'
+            f'-DCMAKE_PREFIX_PATH={';'.join(prefix_paths)}'
         ]
 
     if toolset_config.is_ninja_set():
