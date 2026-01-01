@@ -59,7 +59,8 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
 
     download_link = f"https://github.com/Kitware/CMake/releases/download/v4.2.0/cmake-4.2.0-{system_string}-x86_64.{archive_ext}"
     cmake_main_dir = f'{workspace_dir}/cmake'
-    unpacked_archive_dir_path = f'{cmake_main_dir}/cmake-4.2.0-{system_string}-x86_64'
+
+    archive_root_folder_name = f'cmake-4.2.0-{system_string}-x86_64'
     renamed_archive_dir_name = f'cmake-4.2.0'
     renamed_archive_dir_path = f'{cmake_main_dir}/{renamed_archive_dir_name}'
     downloaded_archive_path = f'{workspace_dir}/cmake-4.2.0.{archive_ext}'
@@ -72,28 +73,55 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
     urllib.request.urlretrieve(download_link, downloaded_archive_path)
     log.info("CMake downloaded.")
 
+    exe_ext = ".exe" if commons.is_windows() else ""
+    package_dirs_exclusion_list: list[str] = [
+        f'{archive_root_folder_name}/doc',
+        f'{archive_root_folder_name}/man',
+        f'{archive_root_folder_name}/share/aclocal',
+        f'{archive_root_folder_name}/share/bash-completion',
+        f'{archive_root_folder_name}/share/cmake-4.2/Help',
+        f'{archive_root_folder_name}/share/cmake-4.2/Licenses',
+        f'{archive_root_folder_name}/share/emacs',
+        f'{archive_root_folder_name}/share/vim',
+        f'{archive_root_folder_name}/share/icons', # Additionally in linux package
+        f'{archive_root_folder_name}/share/mime',  # Additionally in linux package
+    ]
+    package_files_exclusion_list: list[str] = [
+        f'{archive_root_folder_name}/bin/cmake-gui{exe_ext}',
+        f'{archive_root_folder_name}/bin/cmcldeps{exe_ext}',
+        f'{archive_root_folder_name}/bin/cpack{exe_ext}',
+        f'{archive_root_folder_name}/bin/ctest{exe_ext}',
+    ]
+
+    def _is_excluded(filename: str) -> bool:
+        for excluded_dir in package_dirs_exclusion_list:
+            if filename.startswith(excluded_dir):
+                return True
+        for excluded_file in package_files_exclusion_list:
+            if filename == excluded_file:
+                return True
+        return False
+    
     log.info("Unpacking cmake executable (it can take a minute)...")
+    os.makedirs(cmake_main_dir, exist_ok=True)
     if commons.is_windows():
         with zipfile.ZipFile(downloaded_archive_path, 'r') as zip_file:
-            zip_file.extractall(cmake_main_dir)
+            for file in zip_file.filelist:
+                if _is_excluded(file.filename) or file.is_dir(): 
+                    continue
+                output_path = f'{renamed_archive_dir_path}/{file.filename[len(archive_root_folder_name) + 1:]}'
+                output_path = os.path.dirname(output_path)
+                file.filename = os.path.basename(file.filename)
+                zip_file.extract(file, output_path)
     else:
-        # Tarfile on linux is horribly slow, so to speed things up
-        # i try to use native tar
-        os.makedirs(cmake_main_dir, exist_ok=True)
-        log.info("Trying with native tar...")
-        if shutil.which("tar") is not None:
-            log.info("tar found. Using tar...")
-            commons.execute_command(f"tar -xvzf {downloaded_archive_path} -C {cmake_main_dir} > /dev/null", cwd=cmake_main_dir)
-        else:
-            log.info("tar not found. Using python tarfile...")
-            with tarfile.open(downloaded_archive_path, 'r:gz') as tar_file:
-                tar_file.extractall(cmake_main_dir)
-    log.info("Unpacked cmake folder.")
-
-
-    log.info("Renaming cmake unpacked folder...")
-    commons.rename_dir(unpacked_archive_dir_path, renamed_archive_dir_name)
-    log.info("Renamed cmake folder.")
+        with tarfile.open(downloaded_archive_path, 'r:gz') as tar_file:
+            for file_path, file_member in zip(tar_file.getnames(), tar_file.getmembers()):
+                if _is_excluded(file_path) or file_member.isdir(): 
+                    continue
+                output_path = f'{renamed_archive_dir_path}/{file_path[len(archive_root_folder_name) + 1:]}'
+                output_path = os.path.dirname(output_path)
+                file_member.name = f'{output_path}/{os.path.basename(file_path)}'
+                tar_file.extract(file_member, output_path)
 
     exe_ext = ".exe" if commons.is_windows() else ""
     return f'{renamed_archive_dir_path}/bin/cmake{exe_ext}'

@@ -64,14 +64,19 @@ def main():
     def run(args: list[str]):
         commons.execute_process(args, cwd=TEST_PROJECT_DIR)
 
+    #Simple
     run(["python3", "setup.py", "-g", "-o"])
-    run(["python3", "build.py", "-d", "-m", "debug"])
-    run(["python3", "build.py", "-d", "-m", "release"])
-    run(["python3", "build.py", "-c", "-m", "debug"])
-    run(["python3", "build.py", "-c", "-m", "release"])
-    run(["python3", "build.py", "-r", "-m", "debug"])
-    run(["python3", "build.py", "-r", "-m", "release"])
     run(["python3", "build.py", "--clion"])
+
+    #Build debug
+    run(["python3", "build.py", "-d", "-m", "debug"])
+    run(["python3", "build.py", "-c", "-m", "debug"])
+    run(["python3", "build.py", "-r", "-m", "debug"])
+
+    #Build release
+    run(["python3", "build.py", "-d", "-m", "release"])
+    run(["python3", "build.py", "-c", "-m", "release"])
+    run(["python3", "build.py", "-r", "-m", "release"])
 
 if __name__ == "__main__":
     main()
