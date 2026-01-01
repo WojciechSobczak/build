@@ -8,6 +8,7 @@ import tarfile
 
 from . import log
 from . import commons
+from . import config
 
 """
 conan default structure for this configuration looks like this:
@@ -74,7 +75,7 @@ def _get_conan_dependencies_path(workspace_dir: str) -> str:
 def _execute_process(command: list[str], project_dir: str, workspace_dir: str, ninja_exe: str | None = None):
     env = os.environ.copy()
     env['CONAN_HOME'] = _get_conan_home(workspace_dir)
-    if ninja_exe != None:
+    if ninja_exe is not None:
         # Value of type variable "AnyOrLiteralStr" of "dirname" cannot be "str | None". REASON: But it can actually.
         env['PATH'] = os.path.dirname(ninja_exe) + os.pathsep + env['PATH'] # type: ignore
     commons.execute_process(command, project_dir, env)
@@ -83,7 +84,7 @@ def download_conan(workspace_dir: str) -> str:
     return _conan_2_23_0_download(workspace_dir)
 
 def is_conan_systemwide_installed() -> bool:
-    return shutil.which("conan") != None
+    return shutil.which("conan") is not None
 
 def is_conan_in_workspace_toolset(workspace_dir: str) -> bool:
     return os.path.exists(_conan_2_23_0_get_exec_path(workspace_dir))
@@ -97,34 +98,39 @@ def get_toolchain_filepath(mode: str, workspace_dir: str, ninja_generator: bool 
         file_path += f'{mode.capitalize()}/'
     return f'{file_path}/generators/conan_toolchain.cmake'
 
-def create_profiles(conan_executable: str, cmake_executable: str, project_dir: str, workspace_dir: str, ninja_generator: bool):
-    _execute_process([f"{conan_executable}", "profile", "detect", "--force"], project_dir, workspace_dir)
-
-    conan_profiles_path = _get_conan_profiles_path(workspace_dir)
-    config = configparser.ConfigParser()
-    config.read(f'{conan_profiles_path}/default')
-
-    config['settings']['build_type'] = "Release"
-    config['settings']['compiler.cppstd'] = "23"
+def create_profiles(config: config.BuildToolsConfig):
+    if config.conan_exe is None: log.error("conan.create_profiles(): config.conan_exe must be set"); exit(-1)
     
-    config.add_section('conf')
-    config['conf']['tools.cmake:cmake_program'] = cmake_executable
-    if ninja_generator:
-        config['conf']['tools.cmake.cmaketoolchain:generator'] = "Ninja"
+    _execute_process([f"{config.conan_exe}", "profile", "detect", "--force"], config.project_dir, config.workspace_dir)
+
+    conan_profiles_path = _get_conan_profiles_path(config.workspace_dir)
+    
+    conan_profile = configparser.ConfigParser()
+    conan_profile.read(f'{conan_profiles_path}/default')
+
+    conan_profile['settings']['build_type'] = "Release"
+    conan_profile['settings']['compiler.cppstd'] = "23"
+    
+    conan_profile.add_section('conf')
+    conan_profile['conf']['tools.cmake:cmake_program'] = config.cmake_exe
+    if config.is_ninja_set():
+        conan_profile['conf']['tools.cmake.cmaketoolchain:generator'] = "Ninja"
 
     with open(f'{conan_profiles_path}/release', "w") as file:
-        config.write(file)
+        conan_profile.write(file)
 
-    config['settings']['build_type'] = "Debug"
+    conan_profile['settings']['build_type'] = "Debug"
     with open(f'{conan_profiles_path}/debug', "w", encoding="UTF-8") as file:
-        config.write(file)
+        conan_profile.write(file)
 
-def download_dependencies(conan_executable: str, mode: str, project_dir: str, workspace_dir: str, ninja_exe: str | None = None):
+def download_dependencies(config: config.BuildToolsConfig):
+    if config.conan_exe is None: log.error("conan.download_dependencies(): config.conan_exe must be set"); exit(-1)
+
     _execute_process([
-        conan_executable,
+        config.conan_exe,
         f'install',
         f'.',
         f'--build', 'missing',
-        f'--profile', mode.lower(),
-        f'--output-folder', f'{_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}',
-    ], project_dir, workspace_dir, ninja_exe)
+        f'--profile', config.build_mode.lower(),
+        f'--output-folder', f'{_get_conan_dependencies_path(config.workspace_dir)}/{config.build_mode.lower()}',
+    ], config.project_dir, config.workspace_dir, config.ninja_exe)

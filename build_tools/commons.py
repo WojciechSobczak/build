@@ -3,13 +3,9 @@ import subprocess
 import re
 import platform
 import functools
-import typing
 
 from . import log
 
-def _error_log_and_die(msg: str) -> typing.NoReturn:
-    log.error(msg)
-    exit(-1)
 
 def normalize_path(path: str) -> str:
     path = path.replace('\\', '/')
@@ -21,8 +17,8 @@ def realpath(path: str) -> str:
     return normalize_path(path)
 
 def execute_command(command: str, cwd: str, env = None):
-    if cwd is None:
-        raise Exception("'cwd' must be set")
+    if not os.path.isdir(cwd): log.error("commons.execute_command(): 'cwd' must be a directory"); exit(-1)
+
     cwd = realpath(cwd)
     log.info(f"Executing: {command} | CWD: {cwd}")
     process = subprocess.run(args=command, cwd = cwd, shell=True, env=env)
@@ -31,8 +27,8 @@ def execute_command(command: str, cwd: str, env = None):
         exit(process.returncode)
     
 def execute_process(command: list[str], cwd: str, env = None, return_stdout: bool = False) -> str | None:
-    if cwd is None:
-        raise Exception("'cwd' must be set")
+    if not os.path.isdir(cwd): log.error("commons.execute_process(): 'cwd' must be a directory"); exit(-1)
+
     cwd = realpath(cwd)
     log.info(f"Executing: {' '.join(command)} | CWD: {cwd}")
     process = subprocess.run(args=command, cwd = cwd, env=env, stdout=subprocess.PIPE if return_stdout else None)
@@ -41,14 +37,13 @@ def execute_process(command: list[str], cwd: str, env = None, return_stdout: boo
         exit(process.returncode)
     if return_stdout == False:
         return None
-    if process.stdout == None:
+    if process.stdout is None:
         return ""
     return process.stdout.decode("utf-8")
 
 
 def delete_dir(dir_path: str, suppress_output: bool = True):
-    if os.path.isdir(dir_path) == False:
-        _error_log_and_die(f"delete_dir(): {dir_path} is not a directory")
+    if not os.path.isdir(dir_path): log.error(f"commons.delete_dir(): dir_path: '{dir_path}' is not a directory"); exit(-1)
 
     dir_path = realpath(dir_path)
     command = []
@@ -60,12 +55,9 @@ def delete_dir(dir_path: str, suppress_output: bool = True):
     execute_command(' && '.join(command), cwd=os.path.dirname(dir_path))
 
 def rename_dir(source_dir_path: str, target_dir_name: str):
-    if os.path.isdir(source_dir_path) == False:
-        _error_log_and_die(f"rename_dir(): source_dir_path: {source_dir_path} is not a directory")
-
+    if not os.path.isdir(source_dir_path): log.error(f"commons.rename_dir(): source_dir_path: {source_dir_path} is not a directory"); exit(-1)
     # Some checks to avoid problems, not full check as no idea how
-    if ('/' in target_dir_name) or ('\\' in target_dir_name):
-        _error_log_and_die(f"rename_dir(): target_dir_name: {target_dir_name} must be a plain name")
+    if ('/' in target_dir_name) or ('\\' in target_dir_name): log.error(f"commons.rename_dir(): target_dir_name: {target_dir_name} must be a plain name"); exit(-1)
     
     # Get real path, remove trailing / and get directory name and parent directory
     source_dir_path = realpath(source_dir_path)

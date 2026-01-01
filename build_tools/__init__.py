@@ -4,3 +4,4 @@ from . import vcpkg
 from . import ninja
 from . import clion
 from . import commons
+from .config import BuildToolsConfig

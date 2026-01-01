@@ -57,7 +57,7 @@ def download_ninja(workspace_dir: str) -> str:
     return _ninja_1_13_2_download(workspace_dir)
 
 def is_ninja_systemwide_installed() -> bool:
-    return shutil.which("ninja") != None
+    return shutil.which("ninja") is not None
 
 def is_ninja_in_workspace_toolset(workspace_dir: str) -> bool:
     return os.path.exists(_ninja_1_13_2_get_exec_path(workspace_dir))

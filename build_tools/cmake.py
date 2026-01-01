@@ -35,7 +35,7 @@ class CMakeConfig:
         self.cmake_list_dir = cmake_list_dir
         self.cmake_build_folder = cmake_build_folder
         
-        def _detect_mode():
+        def _detect_mode() -> str:
             match cmake_build_type.lower():
                 case "debug": return "Debug"
                 case "release": return "Release"
@@ -82,7 +82,7 @@ def _cmake_4_2_0_download(workspace_dir: str) -> str:
         # i try to use native tar
         os.makedirs(cmake_main_dir, exist_ok=True)
         log.info("Trying with native tar...")
-        if shutil.which("tar") != None:
+        if shutil.which("tar") is not None:
             log.info("tar found. Using tar...")
             commons.execute_command(f"tar -xvzf {downloaded_archive_path} -C {cmake_main_dir}", cwd=cmake_main_dir)
         else:
@@ -106,7 +106,7 @@ def download_cmake(workspace_dir: str) -> str:
     return _cmake_4_2_0_download(workspace_dir)
 
 def is_cmake_systemwide_installed() -> bool:
-    return shutil.which("cmake") != None
+    return shutil.which("cmake") is not None
 
 def is_cmake_in_workspace_toolset(workspace_dir: str) -> bool:
     return os.path.exists(_cmake_4_2_0_get_exec_path(workspace_dir))
@@ -127,15 +127,15 @@ def configure(
         f'-B', get_config_files_path(config),
         f'-S', config.cmake_list_dir,
         f'-DCMAKE_BUILD_TYPE={config.cmake_build_mode}',
-        f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.cmake_build_mode, workspace_dir, ninja_exe != None)}'
+        f'-DCMAKE_TOOLCHAIN_FILE={conan.get_toolchain_filepath(config.cmake_build_mode, workspace_dir, ninja_exe is not None)}'
     ]
 
-    if vcpkg_dependencies != None and len(vcpkg_dependencies) > 0:
+    if vcpkg_dependencies is not None and len(vcpkg_dependencies) > 0:
         command += [
             f'-DCMAKE_PREFIX_PATH={';'.join(vcpkg_dependencies)}'
         ]
 
-    if ninja_exe != None:
+    if ninja_exe is not None:
         command += [
             f'-DCMAKE_GENERATOR=Ninja',
             f'-DCMAKE_MAKE_PROGRAM={ninja_exe}',
