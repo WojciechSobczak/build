@@ -34,21 +34,13 @@ def setup_toolset(args: argparse.Namespace) -> build_tools.BuildToolsConfig:
         build_tools.conan.download_conan(WORKSPACE_DIR)
     if not build_tools.vcpkg.is_vcpkg_in_workspace_toolset(WORKSPACE_DIR):
         build_tools.vcpkg.download_vcpkg(WORKSPACE_DIR)
-
-    # BE AWARE: With ninja and mscompiler you have to run "vcvarsall.bat x64" before 
-    # running the script or have cl.exe and stuff accessible in path
-    # as it requires additional setup, it is disabled by default
-    # Also is you enable it after dependencies setup, you have to rerun dependencies
-    # setup as conan and cmake has problems with multiple generators used
-    if False and not build_tools.ninja.is_ninja_in_workspace_toolset(WORKSPACE_DIR):
+    if not build_tools.ninja.is_ninja_in_workspace_toolset(WORKSPACE_DIR):
         build_tools.ninja.download_ninja(WORKSPACE_DIR)
         
     cmake_exe = build_tools.cmake.get_toolset_cmake_exe_path(WORKSPACE_DIR)
     conan_exe = build_tools.conan.get_toolset_conan_exe_path(WORKSPACE_DIR)
     vcpkg_exe = build_tools.vcpkg.get_toolset_vcpkg_exe_path(WORKSPACE_DIR)
-    ninja_exe = None
-    if False:
-        ninja_exe = build_tools.ninja.get_toolset_ninja_exe_path(WORKSPACE_DIR)
+    ninja_exe = build_tools.ninja.get_toolset_ninja_exe_path(WORKSPACE_DIR)
 
     # If you have all tools in path, just replace it with plain names as here
     # this is disabled by default as it requires environment setup
@@ -61,6 +53,7 @@ def setup_toolset(args: argparse.Namespace) -> build_tools.BuildToolsConfig:
     assert(cmake_exe is not None)
     assert(conan_exe is not None)
     assert(vcpkg_exe is not None)
+    assert(ninja_exe is not None)
     assert(args.mode is not None)
 
     return build_tools.BuildToolsConfig(cmake_exe, conan_exe, vcpkg_exe, ninja_exe, WORKSPACE_DIR, PROJECT_DIR, args.mode)
@@ -91,6 +84,9 @@ def main():
     vcpkg_dependencies: list[str] = []
     if args.config or args.rebuild or args.clion:
         vcpkg_dependencies = build_tools.vcpkg.try_to_find_dependencies(toolset_config)
+
+    if args.rebuild or args.config or args.build:
+        build_tools.vcvarsall.load_vcvarsall_env_if_possible(WORKSPACE_DIR, PROJECT_DIR)
 
     if args.rebuild:
         build_tools.cmake.delete_cache(cmake_config)

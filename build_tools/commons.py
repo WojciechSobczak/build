@@ -16,24 +16,21 @@ def realpath(path: str) -> str:
     path = os.path.realpath(path)
     return normalize_path(path)
 
-def execute_command(command: str, cwd: str, env = None):
-    if not os.path.isdir(cwd): log.error("commons.execute_command(): 'cwd' must be a directory"); exit(-1)
-
+def _execute_process_or_command(command: str | list[str], cwd: str, env = None, return_stdout: bool = False):
     cwd = realpath(cwd)
-    log.info(f"Executing: {command} | CWD: {cwd}")
-    process = subprocess.run(args=command, cwd = cwd, shell=True, env=env)
-    if process.returncode != 0:
-        log.info(f"Command: {command} failed with code: {process.returncode}")
-        exit(process.returncode)
-    
-def execute_process(command: list[str], cwd: str, env = None, return_stdout: bool = False) -> str | None:
-    if not os.path.isdir(cwd): log.error("commons.execute_process(): 'cwd' must be a directory"); exit(-1)
 
-    cwd = realpath(cwd)
-    log.info(f"Executing: {' '.join(command)} | CWD: {cwd}")
-    process = subprocess.run(args=command, cwd = cwd, env=env, stdout=subprocess.PIPE if return_stdout else None)
+    command_log_string = command if type(command) == str else ' '.join(command)
+    log.info(f"Executing: {command_log_string} | CWD: {cwd}")
+
+    process = subprocess.run(
+        args = command, 
+        cwd = cwd, 
+        shell = type(command) == str, 
+        env = env, 
+        stdout = subprocess.PIPE if return_stdout else None
+    )
     if process.returncode != 0:
-        log.info(f"Command: {' '.join(command)} failed with code: {process.returncode}")
+        log.info(f"Command: {command_log_string} failed with code: {process.returncode}")
         exit(process.returncode)
     if return_stdout == False:
         return None
@@ -41,6 +38,13 @@ def execute_process(command: list[str], cwd: str, env = None, return_stdout: boo
         return ""
     return process.stdout.decode("utf-8")
 
+def execute_command(command: str, cwd: str, env = None, return_stdout: bool = False):
+    if not os.path.isdir(cwd): log.error("commons.execute_command(): 'cwd' must be a directory"); exit(-1)
+    return _execute_process_or_command(command, cwd, env, return_stdout)
+    
+def execute_process(command: list[str], cwd: str, env = None, return_stdout: bool = False) -> str | None:
+    if not os.path.isdir(cwd): log.error("commons.execute_process(): 'cwd' must be a directory"); exit(-1)
+    return _execute_process_or_command(command, cwd, env, return_stdout)
 
 def delete_dir(dir_path: str, suppress_output: bool = True):
     if not os.path.isdir(dir_path): log.error(f"commons.delete_dir(): dir_path: '{dir_path}' is not a directory"); exit(-1)
