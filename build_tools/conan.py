@@ -95,7 +95,7 @@ def get_toolset_conan_exe_path(workspace_dir: str) -> str:
 def get_toolchain_filepath(mode: str, workspace_dir: str, ninja_generator: bool = True) -> str:
     file_path = f'{_get_conan_dependencies_path(workspace_dir)}/{mode.lower()}/build'
     if not commons.is_windows() or ninja_generator:
-        file_path += f'{mode.capitalize()}/'
+        file_path += f'/{mode.capitalize()}'
     return f'{file_path}/generators/conan_toolchain.cmake'
 
 def create_profiles(config: config.BuildToolsConfig):

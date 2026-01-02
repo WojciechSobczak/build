@@ -56,27 +56,30 @@ def _vcpkg_2025_11_19_exec_download(workspace_dir: str) -> str:
 
 def _vcpkg_2025_10_17_triplets_download(workspace_dir: str):
     link = f"https://github.com/microsoft/vcpkg/archive/refs/tags/2025.10.17.zip"
-    archive_path = f'{workspace_dir}/vcpkg-triplets-2025.10.17.zip'
-    extract_path = f'{workspace_dir}/vcpkg'
-    extracted_path = f'{workspace_dir}/vcpkg/vcpkg-2025.10.17'
-    renamed_dir_name = f'vcpkg-triplets'
+    downloaded_archive_path = f'{workspace_dir}/vcpkg-triplets-2025.10.17.zip'
+    files_output_path = f'{workspace_dir}/vcpkg'
+    archive_root_folder_name = 'vcpkg-2025.10.17'
+    renamed_archive_dir_path = f'{workspace_dir}/vcpkg/vcpkg-triplets'
+    
 
-    if os.path.exists(extract_path):
+    if os.path.exists(files_output_path):
         log.info("Previous vcpkg download exists. Deleting...")
-        commons.delete_dir(extract_path)
+        commons.delete_dir(files_output_path)
 
     log.info("Downloading vcpkg triples...")
-    urllib.request.urlretrieve(link, archive_path)
+    urllib.request.urlretrieve(link, downloaded_archive_path)
     log.info("vcpkg triples downloaded.")
 
     log.info("Unpacking vcpkg triples...")
-    with zipfile.ZipFile(archive_path, 'r') as zip_file:
-        zip_file.extractall(extract_path)
+    with zipfile.ZipFile(downloaded_archive_path, 'r') as zip_file:
+        for file in zip_file.filelist:
+            if file.is_dir():
+                continue
+            output_path = f'{renamed_archive_dir_path}/{file.filename[len(archive_root_folder_name) + 1:]}'
+            output_path = os.path.dirname(output_path)
+            file.filename = os.path.basename(file.filename)
+            zip_file.extract(file, output_path)
     log.info("vcpkg triples unpacked")
-
-    log.info("Renaming vcpkg unpacked triples...")
-    commons.rename_dir(extracted_path, renamed_dir_name)
-    log.info("Renamed vcpkg unpacked triples folder.")
 
 def _get_triplets_path(workspace_dir: str) -> str:
     return _vcpkg_2025_10_17_get_triplets_path(workspace_dir)
