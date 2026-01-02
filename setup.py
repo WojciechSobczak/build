@@ -20,6 +20,12 @@ def setup_build_tools(workspace_folder: str, workspace_name: str, working_dir: s
     template_build_py_path = f'{extract_path}/build_user_file.py'
     created_build_py_path = f'{working_dir}/build.py'
 
+    def _add_prefix_and_yell_if_exists(file_path: str):
+        if os.path.exists(file_path) and not overwrite_files:
+            log(f"Default project file '{file_path}' already exists. Adding '.bt_exists' suffix to avoid overrides")
+            file_path += ".bt_exists"
+        return file_path
+
     #START: Downloading the build_tools files
     log('Downloading the build_tools files...')
     os.makedirs(workspace_folder, exist_ok=True)
@@ -45,19 +51,15 @@ def setup_build_tools(workspace_folder: str, workspace_name: str, working_dir: s
                 DEFAULT_WORKSPACE_NAME,
                 workspace_name
             )
+
+    created_build_py_path = _add_prefix_and_yell_if_exists(created_build_py_path)
     with open(created_build_py_path, "w", encoding="UTF-8") as output:
         output.write(text)
     #END: Generating build.py for the project
 
-    def _add_prefix_and_yell_if_exists(file_path: str):
-        if os.path.exists(file_path) and not overwrite_files:
-            log(f"Default project file '{file_path}' already exists. Adding '.bt_exists' suffix to avoid overrides")
-            file_path += ".bt_exists"
-        return file_path
-
-    #START: Copying the default project files
-    log('Copying the default project files...')
     if generate_project:
+        #START: Copying the default project files
+        log('Copying the default project files...')
         files_to_copy: dict[str, str] = {
             f'{projgen_files_dir}/CMakeLists.txt' : f'{working_dir}/CMakeLists.txt',
             f'{projgen_files_dir}/conanfile.txt' : f'{working_dir}/conanfile.txt',
@@ -84,14 +86,15 @@ def setup_build_tools(workspace_folder: str, workspace_name: str, working_dir: s
             ]:
                 output.write(f'{ignore_file}\n')
             output.write('\n')
-    #END: Copying the default project files
+        #END: Copying the default project files
 
-    #START: Creating .env file
-    log('Creating .env file...')
-    env_file_path = _add_prefix_and_yell_if_exists(f"{working_dir}/.env")
-    with open(env_file_path, "w", encoding="UTF-8") as file:
-        file.write(f'PYTHONPATH="$PYTHONPATH;{workspace_folder}/build_tools"')
-    #END: Creating .env file 
+        #START: Creating .env file
+        log('Creating .env file...')
+        env_file_path = _add_prefix_and_yell_if_exists(f"{working_dir}/.env")
+        with open(env_file_path, "w", encoding="UTF-8") as file:
+            file.write(f'PYTHONPATH="$PYTHONPATH;{workspace_folder}/build_tools"')
+        #END: Creating .env file 
+    
 
 def main():
     parser = argparse.ArgumentParser(description="Wojciech's C++ project setup")
