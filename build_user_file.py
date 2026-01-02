@@ -11,7 +11,7 @@ import os, sys, subprocess, platform
 WORKSPACE_DIR = os.path.normpath(f'{os.path.dirname(os.path.realpath(__file__))}/.workspace').replace('\\', '/')
 PROJECT_DIR = os.path.normpath(f'{os.path.dirname(os.path.realpath(__file__))}/').replace('\\', '/')
 if not os.path.exists(f'{WORKSPACE_DIR}/build_tools/'): 
-    link = "https://github.com/WojciechSobczak/build/archive/refs/heads/master.zip"
+    link = "https://github.com/WojciechSobczak/build/blob/master/setup.py"
     if platform.system() == "Windows": 
         subprocess.run(args=f"powershell -command Invoke-WebRequest {link} -OutFile setup.py; python3 setup.py -w .workspace", cwd=PROJECT_DIR, shell=True)
     if platform.system() == "Linux": 

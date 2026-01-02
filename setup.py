@@ -5,8 +5,12 @@ import zipfile
 import argparse
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/')
-MASTER_LINK = "https://github.com/WojciechSobczak/build/archive/refs/heads/master.zip"
-RELEASE_LINK = "https://github.com/WojciechSobczak/build/archive/refs/heads/master.zip"
+
+RELEASE_ZIP_LINK = "https://github.com/WojciechSobczak/build/archive/refs/heads/master.zip"
+
+MASTER_SETUP_PY_LINK = "https://github.com/WojciechSobczak/build/blob/master/setup.py"
+RELEASE_SETUP_PY_LINK = "https://github.com/WojciechSobczak/build/blob/master/setup.py"
+
 GITHUB_ZIP_PREFIX = "build-master/"
 DEFAULT_WORKSPACE_NAME = ".workspace"
 
@@ -30,7 +34,7 @@ def setup_build_tools(workspace_folder: str, workspace_name: str, working_dir: s
     log('Downloading the build_tools files...')
     os.makedirs(workspace_folder, exist_ok=True)
     os.makedirs(extract_path, exist_ok=True)
-    urllib.request.urlretrieve(RELEASE_LINK, zip_path)
+    urllib.request.urlretrieve(RELEASE_ZIP_LINK, zip_path)
     with zipfile.ZipFile(zip_path, 'r') as zip_file:
         zip_infos = zip_file.infolist()
         for zip_info in zip_infos:
@@ -45,7 +49,7 @@ def setup_build_tools(workspace_folder: str, workspace_name: str, working_dir: s
     log('Generating build.py for the project...')
     with open(template_build_py_path, "r", encoding="UTF-8") as input:
         text = input.read()
-        text = text.replace(MASTER_LINK, RELEASE_LINK)
+        text = text.replace(MASTER_SETUP_PY_LINK, RELEASE_SETUP_PY_LINK)
         if workspace_name != DEFAULT_WORKSPACE_NAME:
             text = text.replace(
                 DEFAULT_WORKSPACE_NAME,

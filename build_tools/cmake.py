@@ -187,7 +187,6 @@ def generate_configure_options(
             '-DCMAKE_MAKE_PROGRAM': f'{toolset_config.ninja_exe}',
         })
 
-    print(cmake_variables)
     return ConfigureOptions(cmake_direct_args, cmake_variables)
 
 def configure(

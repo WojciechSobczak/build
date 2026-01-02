@@ -7,19 +7,22 @@ from build_tools import commons
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__)).replace("\\", "/")
 sys.path.append(SCRIPT_DIR)
-RELEASE_ZIP_LINK = "https://github.com/WojciechSobczak/build/archive/refs/tags/{}.zip"
 
 def generate_setup_py(release_tag_name: str):
     with open(f"{SCRIPT_DIR}/setup.py", "r", encoding="UTF-8") as file:
         setup_py_text = file.read()
 
     setup_py_text = setup_py_text.replace(
-        f'RELEASE_LINK = "https://github.com/WojciechSobczak/build/archive/refs/heads/master.zip"',
-        f'RELEASE_LINK = "{RELEASE_ZIP_LINK.format(release_tag_name)}"'
+        f'RELEASE_ZIP_LINK = "https://github.com/WojciechSobczak/build/archive/refs/heads/master.zip"',
+        f'RELEASE_ZIP_LINK = "https://github.com/WojciechSobczak/build/archive/refs/tags/{release_tag_name}.zip"'
     )
     setup_py_text = setup_py_text.replace(
         f'GITHUB_ZIP_PREFIX = "build-master/"', 
         f'GITHUB_ZIP_PREFIX = "build-{release_tag_name}/"'
+    )
+    setup_py_text = setup_py_text.replace(
+        f'RELEASE_SETUP_PY_LINK = "https://github.com/WojciechSobczak/build/blob/master/setup.py"', 
+        f'RELEASE_SETUP_PY_LINK = "https://github.com/WojciechSobczak/build/releases/download/{release_tag_name}/setup.py"'
     )
 
     os.makedirs(f"{SCRIPT_DIR}/releases/", exist_ok=True)
