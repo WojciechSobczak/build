@@ -41,19 +41,19 @@ inside the directory where script were downloaded. (deafult = `.workspace`)
 ### Usage Examples
 On windows if you have `powershell` you can use following command:
 ```powershell 
-Invoke-WebRequest https://github.com/WojciechSobczak/build/releases/download/0.0.3/setup.py -OutFile setup.py; python3 setup.py;
+Invoke-WebRequest https://github.com/WojciechSobczak/build/releases/download/0.0.4/setup.py -OutFile setup.py; python3 setup.py;
 ```
 
 Which will download the newest `setup.py` and execute it, creating new project. 
 
 If you are stuck to `cmd` or `bash` on linux you have to use whatever you have available. If you have `curl` you can use it like:
 ```bash
-curl --output setup.py https://github.com/WojciechSobczak/build/releases/download/0.0.3/setup.py && python3 setup.py
+curl --output setup.py https://github.com/WojciechSobczak/build/releases/download/0.0.4/setup.py && python3 setup.py
 ```
 
 Or if you have `wget`:
 ```bash
-wget https://github.com/WojciechSobczak/build/releases/download/0.0.3/setup.py && python3 setup.py
+wget https://github.com/WojciechSobczak/build/releases/download/0.0.4/setup.py && python3 setup.py
 ```
 
 ## `build.py`
