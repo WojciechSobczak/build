@@ -61,22 +61,24 @@ def main():
         os.makedirs(TEST_PROJECT_DIR, exist_ok=True)
         generate_setups_and_copy()
 
-    def run(args: list[str]):
+    def _run(args: list[str]):
         commons.execute_process(args, cwd=TEST_PROJECT_DIR)
 
-    #Simple
-    run(["python3", "setup.py", "-g", "-o"])
-    run(["python3", "build.py", "--clion"])
+    # Setup
+    _run(["python3", "setup.py", "-g", "-o"])
 
-    #Build debug
-    run(["python3", "build.py", "-d", "-m", "debug"])
-    run(["python3", "build.py", "-c", "-m", "debug"])
-    run(["python3", "build.py", "-r", "-m", "debug"])
+    # Build debug
+    _run(["python3", "build.py", "-d", "-m", "debug"])
+    _run(["python3", "build.py", "-c", "-m", "debug"])
+    _run(["python3", "build.py", "-r", "-m", "debug"])
 
-    #Build release
-    run(["python3", "build.py", "-d", "-m", "release"])
-    run(["python3", "build.py", "-c", "-m", "release"])
-    run(["python3", "build.py", "-r", "-m", "release"])
+    # Build release
+    _run(["python3", "build.py", "-d", "-m", "release"])
+    _run(["python3", "build.py", "-c", "-m", "release"])
+    _run(["python3", "build.py", "-r", "-m", "release"])
+
+    # Addons
+    _run(["python3", "build.py", "--clion"])
 
 if __name__ == "__main__":
     main()
